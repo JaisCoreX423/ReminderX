@@ -253,7 +253,13 @@ public partial class App : Application
                     Dispatcher.BeginInvoke(() =>
                     {
                         DiagSnapshot.Save((FrameworkElement)_mainWindow.Content, "main", _mainWindow.Background);
-                        Environment.Exit(0);
+                        _mainWindow.WindowState = WindowState.Maximized;
+                        Dispatcher.BeginInvoke(() =>
+                        {
+                            DiagSnapshot.Save((FrameworkElement)_mainWindow.Content, "main-max", _mainWindow.Background);
+                            Logger.Log($"Maximized: {_mainWindow.ActualWidth}x{_mainWindow.ActualHeight}, margin {_mainWindow.RootGrid.Margin}");
+                            Environment.Exit(0);
+                        }, DispatcherPriority.ApplicationIdle);
                     }, DispatcherPriority.ApplicationIdle);
                 }, DispatcherPriority.ApplicationIdle);
             });

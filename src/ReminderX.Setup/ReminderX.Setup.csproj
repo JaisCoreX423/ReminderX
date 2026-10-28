@@ -11,7 +11,9 @@
     <SelfContained>false</SelfContained>
     <InvariantGlobalization>true</InvariantGlobalization>
     <ApplicationIcon>..\ReminderX\Assets\reminderx.ico</ApplicationIcon>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
+    <!-- Double-click always elevates. The auto-updater starts it with __COMPAT_LAYER=RunAsInvoker, so silent updates still run without a prompt. -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <ItemGroup Condition="Exists('payload.zip')">

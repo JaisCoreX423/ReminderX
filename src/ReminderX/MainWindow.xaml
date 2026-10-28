@@ -9,15 +9,16 @@
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         Background="{DynamicResource Brush.Window}"
-        ResizeMode="CanMinimize"
+        ResizeMode="CanResize"
+        MinWidth="760" MinHeight="520"
         FontFamily="{StaticResource Font.Text}">
 
     <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome CaptionHeight="44" ResizeBorderThickness="0" GlassFrameThickness="0"
+        <shell:WindowChrome CaptionHeight="44" ResizeBorderThickness="6" GlassFrameThickness="0"
                              UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
 
-    <Grid>
+    <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="44"/>
             <RowDefinition Height="*"/>
@@ -31,6 +32,10 @@
                 <Button Style="{StaticResource Button.Icon}" Click="Minimize_Click" ToolTip="Minimize to tray"
                         shell:WindowChrome.IsHitTestVisibleInChrome="True">
                     <TextBlock Text="&#xE921;" FontFamily="Segoe Fluent Icons" FontSize="11"/>
+                </Button>
+                <Button Style="{StaticResource Button.Icon}" Click="Maximize_Click" ToolTip="Maximize"
+                        x:Name="MaximizeButton" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <TextBlock x:Name="MaximizeGlyph" Text="&#xE922;" FontFamily="Segoe Fluent Icons" FontSize="11"/>
                 </Button>
                 <Button Style="{StaticResource Button.Icon}" Click="Close_Click" ToolTip="Close (keeps running in tray)"
                         shell:WindowChrome.IsHitTestVisibleInChrome="True">

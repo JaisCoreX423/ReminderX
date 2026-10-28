@@ -14,10 +14,11 @@ Developed by Alfred Ibarra & Claude.
 ## Install
 
 Download `ReminderXSetup.exe` from the [latest release](../../releases/latest) and run it. It
-installs to `%LocalAppData%\Programs\ReminderX` (no admin rights needed), creates a Desktop
-shortcut, registers a per-user logon task (`ReminderX`, runs with `--background` so it starts
-straight into the tray), registers the MCP server in Claude Desktop and Claude Code (see below),
-launches the app and closes itself. No .NET runtime is needed.
+always asks for admin rights (UAC), then installs to `%LocalAppData%\Programs\ReminderX`, creates a
+Desktop shortcut, registers a per-user logon task (`ReminderX`, runs with `--background` so it
+starts straight into the tray), connects ReminderX to Claude Desktop and Claude Code (see below),
+offers to restart Claude Desktop if it's open, launches the app and closes itself. No .NET runtime
+is needed. Automatic updates run it without the UAC prompt.
 
 **If the logon task doesn't get created** (some locked-down environments block `schtasks`), open
 Settings inside the app and toggle "Start with Windows". It registers the same task.
@@ -89,15 +90,18 @@ Opening `http://127.0.0.1:8787/mcp` in a browser shows a status page.
 
 The installer registers it for you:
 
-- **Claude Desktop**: adds `reminderx` to `%APPDATA%\Claude\claude_desktop_config.json` as
-  `ReminderX.exe --mcp-stdio`, a small stdio bridge to the running app (Claude Desktop only loads
-  command-based servers). The original file is backed up to `claude_desktop_config.json.reminderx-backup`.
-  Restart Claude Desktop afterwards.
+- **Claude Desktop**: adds `reminderx` to `%APPDATA%\Claude\claude_desktop_config.json`
+  (Claude Desktop only loads command-based servers). With Node.js installed it uses
+  `npx -y mcp-remote http://127.0.0.1:8787/mcp`; without it, `ReminderX.exe --mcp-stdio`, a small
+  stdio bridge to the running app. The previous file is backed up to
+  `claude_desktop_config.json.reminderx-backup`. If Claude Desktop is open, setup asks whether to
+  restart it so it loads the server.
 - **Claude Code**: runs `claude mcp add --transport http --scope user reminderx http://127.0.0.1:8787/mcp`
   if the `claude` CLI is installed.
 
-To redo it by hand: `ReminderXSetup.exe --claude-register` (or `--claude-unregister`). Settings
-shows the Claude Code command and lets you change the port.
+Settings > AI access shows whether each one is connected. If you change the port, it shows the
+Claude Code command and a **Reconnect Claude** button that points both at the new port. To redo
+it by hand: `ReminderXSetup.exe --claude-register` (or `--claude-unregister`).
 
 Tools: `list_reminders`, `get_reminder`, `create_reminder`, `complete_reminder`, `snooze_reminder`,
 `delete_reminder`, `list_todos`, `create_todo`, `complete_todo`, `delete_todo`, `get_history`.

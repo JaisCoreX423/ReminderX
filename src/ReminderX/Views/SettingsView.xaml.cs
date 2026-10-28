@@ -46,7 +46,68 @@ public partial class SettingsView : UserControl
         McpStatusText.Text = mcp.IsRunning
             ? $"Running at http://127.0.0.1:{mcp.Port}/mcp"
             : (mcp.LastError != null ? $"Not running: {mcp.LastError}" : "Not running");
-        McpCommandText.Text = $"claude mcp add --transport http --scope user reminderx http://127.0.0.1:{mcp.Port}/mcp";
+        UpdateClaudeStatus();
+    }
+
+    private void UpdateClaudeStatus()
+    {
+        var port = AppHost.Reminders.GetSettings().McpServerPort;
+        var (desktop, code) = ClaudeIntegration.GetStatus(port);
+
+        static string Describe(string name, ClaudeClientState state) => state switch
+        {
+            ClaudeClientState.Connected => $"{name}: connected",
+            ClaudeClientState.WrongPort => $"{name}: points to another port",
+            ClaudeClientState.Missing => $"{name}: not connected",
+            _ => $"{name}: not installed"
+        };
+
+        ClaudeStatusText.Text = $"{Describe("Claude Desktop", desktop)}  ·  {Describe("Claude Code", code)}";
+        McpCommandText.Text = ClaudeIntegration.ClaudeCodeCommand(port);
+
+        // Hidden once every installed Claude app points at this port; shows again when the port changes.
+        var needsAction = desktop is ClaudeClientState.Missing or ClaudeClientState.WrongPort ||
+                          code is ClaudeClientState.Missing or ClaudeClientState.WrongPort;
+        ClaudeConnectPanel.Visibility = needsAction ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void ReconnectClaude_Click(object sender, RoutedEventArgs e)
+    {
+        if (AppHost.IsTestMode && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REMINDERX_TEST_CLAUDE_CONFIG")))
+        {
+            Logger.Log("Reconnect Claude skipped in test mode (would edit the real Claude configs)");
+            return;
+        }
+
+        var port = AppHost.Reminders.GetSettings().McpServerPort;
+        var exePath = Environment.ProcessPath ?? "";
+        ReconnectButton.IsEnabled = false;
+        ReconnectButton.Content = "Connecting…";
+        try
+        {
+            var desktopChanged = await Task.Run(() => ClaudeIntegration.Register(exePath, port));
+            Logger.Log($"Reconnect Claude on port {port}: desktop config changed = {desktopChanged}");
+
+            if (desktopChanged && ClaudeIntegration.IsDesktopRunning() &&
+                MessageBox.Show(Window.GetWindow(this),
+                    "ReminderX was updated in Claude Desktop. Restart Claude Desktop now so it loads it?",
+                    "ReminderX", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            {
+                await Task.Run(ClaudeIntegration.RestartDesktop);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Log($"Reconnect Claude failed: {ex.Message}");
+            MessageBox.Show(Window.GetWindow(this), $"Couldn't update Claude: {ex.Message}", "ReminderX",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally
+        {
+            ReconnectButton.IsEnabled = true;
+            ReconnectButton.Content = "Reconnect Claude";
+            UpdateClaudeStatus();
+        }
     }
 
     private void Theme_Click(object sender, RoutedEventArgs e)

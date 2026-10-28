@@ -41,7 +41,12 @@ internal static class Program
         // Maintenance: (re)do or undo only the Claude Desktop / Claude Code hookup.
         if (args.Any(a => a.Equals("--claude-register", StringComparison.OrdinalIgnoreCase)))
         {
-            ClaudeIntegration.Register(Path.Combine(InstallDir, "ReminderX.exe"), DataDir, markerPath: null);
+            if (ClaudeIntegration.Register(Path.Combine(InstallDir, "ReminderX.exe"), ClaudeIntegration.ReadPort(DataDir)) &&
+                ClaudeIntegration.IsDesktopRunning() &&
+                AskYesNo("ReminderX was added to Claude Desktop. Restart Claude Desktop now so it loads it?"))
+            {
+                ClaudeIntegration.RestartDesktop();
+            }
             return 0;
         }
         if (args.Any(a => a.Equals("--claude-unregister", StringComparison.OrdinalIgnoreCase)))
@@ -142,8 +147,20 @@ internal static class Program
         // Interactive installs always (re)register; silent updates only once, so an update brings
         // the registration to people who installed before it existed but never re-adds one the user
         // removed on purpose.
+        var desktopChanged = false;
         if (!Silent || !File.Exists(ClaudeRegisteredMarker))
-            ClaudeIntegration.Register(exePath, DataDir, ClaudeRegisteredMarker);
+        {
+            desktopChanged = ClaudeIntegration.Register(exePath, ClaudeIntegration.ReadPort(DataDir));
+            try { File.WriteAllText(ClaudeRegisteredMarker, DateTime.Now.ToString("O")); }
+            catch { /* the marker only keeps silent updates from registering again */ }
+        }
+
+        // Claude Desktop reads its MCP config only at startup.
+        if (!Silent && desktopChanged && ClaudeIntegration.IsDesktopRunning() &&
+            AskYesNo("ReminderX was added to Claude Desktop. Restart Claude Desktop now so it loads it?"))
+        {
+            ClaudeIntegration.RestartDesktop();
+        }
 
         Console.WriteLine();
         Console.WriteLine("Done.");
@@ -262,6 +279,21 @@ internal static class Program
     }
 
     // ---------------- Helpers ----------------
+
+    private static bool AskYesNo(string message)
+    {
+        // Test hook: answer without a dialog.
+        if (Environment.GetEnvironmentVariable("REMINDERX_TEST_ANSWER") is { Length: > 0 } answer)
+            return answer.Equals("yes", StringComparison.OrdinalIgnoreCase);
+
+        const uint MB_YESNO = 0x4, MB_ICONQUESTION = 0x20, MB_TOPMOST = 0x40000, MB_SETFOREGROUND = 0x10000;
+        const int IDYES = 6;
+        return MessageBoxW(IntPtr.Zero, message, "ReminderX Setup",
+            MB_YESNO | MB_ICONQUESTION | MB_TOPMOST | MB_SETFOREGROUND) == IDYES;
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
 
     private static (int ExitCode, string Output) RunProcess(string fileName, string arguments)
     {
