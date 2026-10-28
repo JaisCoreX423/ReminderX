@@ -1,0 +1,105 @@
+<p align="center">
+  <img src="src/ReminderX/Assets/reminderx-256.png" width="96" alt="ReminderX icon">
+</p>
+
+# ReminderX
+
+A minimalist, Apple-style reminders app for Windows. It lives in the tray, dims the screen with a
+reminder card when something is due (one-time or recurring), keeps a to-do list and a history log,
+updates itself from GitHub Releases, and exposes an MCP server so an AI client (Claude Code,
+Claude Desktop) can list and create reminders and to-dos directly.
+
+Developed by Alfred Ibarra & Claude.
+
+## Install
+
+Download `ReminderXSetup.exe` from the [latest release](../../releases/latest) and run it. It
+installs to `%LocalAppData%\Programs\ReminderX` (no admin rights needed), creates a Desktop
+shortcut, registers a per-user logon task (`ReminderX`, runs with `--background` so it starts
+straight into the tray), launches the app and closes itself. No .NET runtime is needed.
+
+**If the logon task doesn't get created** (some locked-down environments block `schtasks`), open
+Settings inside the app and toggle "Start with Windows". It registers the same task.
+
+## Updates
+
+ReminderX checks this repo's latest release a minute after it starts and every 6 hours after that.
+When there's a newer version it downloads `ReminderXSetup.exe`, verifies it against the SHA-256
+checksum GitHub publishes for the file, and installs it silently while the app is idle in the tray
+(window hidden, no alert on screen), then restarts into the tray. Settings > About shows the current
+version, has **Check now** / **Install**, and a switch to turn automatic installs off.
+Silent-install output goes to `%LocalAppData%\ReminderX\setup.log`.
+
+### Publishing a release
+
+Push a version tag. The [Release workflow](.github/workflows/release.yml) builds the installer
+with that version stamped in and publishes it as a GitHub release:
+
+```bash
+git tag v1.0.2
+```
+
+```bash
+git push origin v1.0.2
+```
+
+To build the installer locally instead (needs the .NET 10 SDK): `.\build-installer.ps1 -Version 1.0.2`
+(output in `dist\`).
+
+## Uninstall
+
+```powershell
+ReminderXSetup.exe --uninstall               # keeps your reminders/to-dos/history
+ReminderXSetup.exe --uninstall --remove-data # also deletes %LocalAppData%\ReminderX
+```
+
+## Using it
+
+- **Opening it**: single-click the tray icon, or use the taskbar pin / Start menu / Desktop shortcut
+  (if it's already running in the tray, that brings the existing window up). Right-click the tray
+  icon for New Reminder / New To-Do / Exit.
+- **Reminders**: one-time (pick a date and time) or recurring (every N seconds/minutes/hours, or
+  every N days/weeks/months at a specific time; weekly can target specific weekdays).
+- **Alerts**: when a reminder is due, a chime plays, every monitor dims and a card appears on the
+  screen your mouse is on, with **Complete** (Enter), **Snooze 10 min** (Esc), **Open reminder** and
+  **Dismiss**. Several due at once queue up ("1 more waiting"). If you only open it or ignore it, it
+  comes back every N minutes (per reminder, default 10) until you complete it. Settings >
+  "Full-screen alerts" switches to regular Windows notifications instead; "Preview" shows a sample.
+- **Appearance**: Settings > Appearance: System (follows Windows), Light or Dark.
+- **Attachments**: add files to any reminder (images get a thumbnail in the editor and show on the
+  alert card).
+- **To-Do**: a plain checklist. Give one a due date and it creates a matching reminder
+  automatically (toggle off per item if you don't want that).
+- **History**: every created/shown/completed/snoozed/dismissed event, most recent first.
+- Closing the window (X) just hides it to the tray; the app keeps running. Use Exit from the tray
+  menu to actually quit.
+
+## Connecting an AI client (MCP)
+
+While ReminderX is running it serves MCP tools over HTTP on `127.0.0.1` only (never the network).
+Settings shows the exact command and lets you change the port. From Claude Code:
+
+```bash
+claude mcp add --transport http --scope user reminderx http://127.0.0.1:8787/mcp
+```
+
+Tools: `list_reminders`, `get_reminder`, `create_reminder`, `complete_reminder`, `snooze_reminder`,
+`delete_reminder`, `list_todos`, `create_todo`, `complete_todo`, `delete_todo`, `get_history`.
+
+## Project layout
+
+```
+src/ReminderX/          The app (WPF, .NET 10)
+  Models/               Reminder, TodoItem, RecurrenceRule, HistoryEntry, Attachment, AppData
+  Services/             storage (data.json), recurrence, scheduler, full-screen alerts, chime,
+                        toast notifications, tray icon, autostart, auto-updater, MCP host
+  Mcp/                  MCP tool definitions
+  Views/                Reminders / To-Do / History / Settings, editors, alert overlay
+  Themes/               light/dark color tokens and control styles
+src/ReminderX.Setup/    The installer: embeds the published app and installs/uninstalls it
+build-installer.ps1     Builds dist\ReminderXSetup.exe
+```
+
+Data lives at `%LocalAppData%\ReminderX\data.json` (plus an `Attachments\<reminderId>\` folder per
+reminder with attachments, and `reminderx.log` for troubleshooting). Settings has shortcuts to open
+both.

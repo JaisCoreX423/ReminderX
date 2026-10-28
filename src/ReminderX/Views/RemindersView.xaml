@@ -1,0 +1,84 @@
+<UserControl x:Class="ReminderX.Views.RemindersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="Reminders" Style="{StaticResource Text.Title}"/>
+            <Button Content="+ New Reminder" Style="{StaticResource Button.Primary}"
+                    HorizontalAlignment="Right" Click="NewReminder_Click"/>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <TextBlock Text="No reminders yet. Create one to get started."
+                       Style="{StaticResource Text.Caption}" x:Name="EmptyState"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="ItemsHost">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="6"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Column="0" CornerRadius="3" Margin="0,0,12,0"
+                                            Background="{Binding State, Converter={StaticResource StateToBrushKey}}"/>
+
+                                    <StackPanel Grid.Column="1">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Title}" Style="{StaticResource Text.Heading}"/>
+                                            <Border Background="{DynamicResource Brush.SurfaceAlt}" CornerRadius="6"
+                                                    Padding="6,2" Margin="8,0,0,0"
+                                                    Visibility="{Binding IsRecurring, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="&#x21BB; repeats" Style="{StaticResource Text.Caption}"/>
+                                            </Border>
+                                            <Border Background="{DynamicResource Brush.SurfaceAlt}" CornerRadius="6"
+                                                    Padding="6,2" Margin="6,0,0,0"
+                                                    Visibility="{Binding IsPaused, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="paused" Style="{StaticResource Text.Caption}"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Description}" Style="{StaticResource Text.Body}"
+                                                   Foreground="{DynamicResource Brush.TextSecondary}" MaxHeight="34"
+                                                   TextTrimming="CharacterEllipsis" Margin="0,2,0,0"
+                                                   Visibility="{Binding Description, Converter={StaticResource NotNullToVis}}"/>
+                                        <TextBlock Text="{Binding DueAt, Converter={StaticResource FriendlyDate}}"
+                                                   Style="{StaticResource Text.Caption}" Margin="0,6,0,0"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+                                        <Button Style="{StaticResource Button.Icon}" Click="Complete_Click" ToolTip="Complete">
+                                            <TextBlock Text="&#xE73E;" FontFamily="Segoe Fluent Icons" FontSize="14"/>
+                                        </Button>
+                                        <Button Style="{StaticResource Button.Icon}" Click="Snooze_Click" ToolTip="Snooze 10 min">
+                                            <TextBlock Text="&#xE916;" FontFamily="Segoe Fluent Icons" FontSize="14"/>
+                                        </Button>
+                                        <Button Style="{StaticResource Button.Icon}" Click="Edit_Click" ToolTip="Edit">
+                                            <TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons" FontSize="14"/>
+                                        </Button>
+                                        <Button Style="{StaticResource Button.Icon}" Click="Pause_Click" ToolTip="Pause/Resume">
+                                            <TextBlock Text="&#xE769;" FontFamily="Segoe Fluent Icons" FontSize="14"/>
+                                        </Button>
+                                        <Button Style="{StaticResource Button.Icon}" Click="Delete_Click" ToolTip="Delete">
+                                            <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons" FontSize="14"
+                                                       Foreground="{DynamicResource Brush.Danger}"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

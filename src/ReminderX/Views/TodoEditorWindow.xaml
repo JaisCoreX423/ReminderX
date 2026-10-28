@@ -1,0 +1,67 @@
+<Window x:Class="ReminderX.Views.TodoEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="To-Do"
+        Icon="/Assets/reminderx.ico"
+        Width="420" Height="430"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        Background="{DynamicResource Brush.Window}"
+        ResizeMode="NoResize">
+
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="44" ResizeBorderThickness="0" GlassFrameThickness="0"
+                             UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="44"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="64"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <TextBlock Text="New To-Do" Style="{StaticResource Text.Heading}" Margin="18,0,0,0" VerticalAlignment="Center"/>
+            <Button Style="{StaticResource Button.Icon}" Click="Cancel_Click" HorizontalAlignment="Right" Margin="0,0,8,0"
+                    shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                <TextBlock Text="&#xE8BB;" FontFamily="Segoe Fluent Icons" FontSize="11"/>
+            </Button>
+        </Grid>
+
+            <StackPanel Grid.Row="1" Margin="20,8,20,0">
+                <TextBlock Text="TITLE" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+                <TextBox x:Name="TitleBox" FontSize="15" Padding="10,9"/>
+
+                <TextBlock Text="NOTES" Style="{StaticResource Text.Caption}" Margin="0,14,0,4"/>
+                <TextBox x:Name="NotesBox" Height="64" TextWrapping="Wrap" AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto"/>
+
+                <CheckBox x:Name="HasDueDateCheck" Content="Set a due date" Margin="0,16,0,0"
+                          Foreground="{DynamicResource Brush.TextPrimary}" Checked="HasDueDateCheck_Changed"
+                          Unchecked="HasDueDateCheck_Changed"/>
+
+                <StackPanel x:Name="DuePanel" Margin="0,10,0,0" Visibility="Collapsed">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="140"/>
+                        </Grid.ColumnDefinitions>
+                        <DatePicker x:Name="DueDatePicker" Grid.Column="0"/>
+                        <ComboBox x:Name="DueTimeCombo" Grid.Column="2"/>
+                    </Grid>
+                    <CheckBox x:Name="CreateReminderCheck" Content="Also create a reminder" IsChecked="True"
+                              Margin="0,10,0,0" Foreground="{DynamicResource Brush.TextPrimary}"/>
+                </StackPanel>
+            </StackPanel>
+
+            <Grid Grid.Row="2" Background="{DynamicResource Brush.SurfaceAlt}">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0">
+                    <Button Content="Cancel" Style="{StaticResource Button.Secondary}" Click="Cancel_Click" Margin="0,0,10,0"/>
+                    <Button Content="Save" Style="{StaticResource Button.Primary}" Click="Save_Click"/>
+                </StackPanel>
+            </Grid>
+    </Grid>
+</Window>

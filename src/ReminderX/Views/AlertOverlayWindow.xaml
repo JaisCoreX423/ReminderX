@@ -1,0 +1,94 @@
+<Window x:Class="ReminderX.Views.AlertOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ReminderX"
+        Icon="/Assets/reminderx.ico"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        WindowStartupLocation="Manual"
+        FontFamily="{StaticResource Font.Text}">
+
+    <Grid x:Name="Root" Opacity="0">
+        <!-- The dim layer over the whole monitor -->
+        <Rectangle Fill="Black" Opacity="0.55"/>
+
+        <Grid x:Name="CardHost" Visibility="Collapsed" Width="480"
+              HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+            <Grid.RenderTransform>
+                <ScaleTransform x:Name="CardScale" ScaleX="0.96" ScaleY="0.96"/>
+            </Grid.RenderTransform>
+
+            <!-- Shadow on its own layer so the text above stays crisp. -->
+            <Border Background="{DynamicResource Brush.Surface}" CornerRadius="18">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="40" ShadowDepth="10" Opacity="0.45" Color="Black"/>
+                </Border.Effect>
+            </Border>
+
+            <Border Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Border}"
+                    BorderThickness="1" CornerRadius="18" Padding="28,22,28,18">
+                <StackPanel>
+                    <Grid Margin="0,0,0,14">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="/Assets/reminderx-256.png" Width="22" Height="22"
+                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <TextBlock Text="REMINDER" Style="{StaticResource Text.Caption}" FontWeight="SemiBold"
+                                       Margin="10,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Border x:Name="WaitingChip" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Background="{DynamicResource Brush.SurfaceAlt}" CornerRadius="10" Padding="10,3"
+                                Visibility="Collapsed">
+                            <TextBlock x:Name="WaitingText" Style="{StaticResource Text.Caption}"/>
+                        </Border>
+                    </Grid>
+
+                    <TextBlock x:Name="TitleText" FontFamily="{StaticResource Font.Display}" FontSize="24"
+                               FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}"
+                               TextWrapping="Wrap"/>
+                    <TextBlock x:Name="WhenText" Style="{StaticResource Text.Caption}" FontSize="12.5"
+                               Margin="0,6,0,0" TextWrapping="Wrap"/>
+
+                    <ScrollViewer x:Name="DescriptionHost" MaxHeight="170" VerticalScrollBarVisibility="Auto"
+                                  Margin="0,14,0,0" Visibility="Collapsed">
+                        <TextBlock x:Name="DescriptionText" Style="{StaticResource Text.Body}" FontSize="14"
+                                   Foreground="{DynamicResource Brush.TextSecondary}" LineHeight="20"/>
+                    </ScrollViewer>
+
+                    <Border x:Name="ImageHost" Height="170" CornerRadius="10" Margin="0,14,0,0" Visibility="Collapsed">
+                        <Border.Background>
+                            <ImageBrush x:Name="AttachmentBrush" Stretch="UniformToFill"/>
+                        </Border.Background>
+                    </Border>
+
+                    <Grid Margin="0,24,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="Open reminder" Style="{StaticResource Button.Secondary}"
+                                Click="Open_Click"/>
+                        <Button Grid.Column="2" Content="Snooze 10 min" Style="{StaticResource Button.Secondary}"
+                                Click="Snooze_Click" IsCancel="True"/>
+                        <Button Grid.Column="4" Content="Complete" Style="{StaticResource Button.Primary}"
+                                Click="Complete_Click" IsDefault="True"/>
+                    </Grid>
+
+                    <Grid Margin="0,12,0,0">
+                        <Button Content="Dismiss" Style="{StaticResource Button.Link}" HorizontalAlignment="Left"
+                                Click="Dismiss_Click"/>
+                        <TextBlock Text="Enter to complete  ·  Esc to snooze" Style="{StaticResource Text.Caption}"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

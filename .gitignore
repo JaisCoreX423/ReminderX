@@ -1,0 +1,7 @@
+bin/
+obj/
+publish/
+dist/
+src/ReminderX.Setup/payload.zip
+*.user
+.vs/

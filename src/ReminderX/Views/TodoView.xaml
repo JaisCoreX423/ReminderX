@@ -1,0 +1,54 @@
+<UserControl x:Class="ReminderX.Views.TodoView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="To-Do" Style="{StaticResource Text.Title}"/>
+            <Button Content="+ New To-Do" Style="{StaticResource Button.Primary}"
+                    HorizontalAlignment="Right" Click="NewTodo_Click"/>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <TextBlock Text="Nothing on your list. Add something." Style="{StaticResource Text.Caption}"
+                       x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="ItemsHost">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource Card}" Margin="0,0,0,8" Padding="12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <CheckBox Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0"
+                                              IsChecked="{Binding IsDone, Mode=OneWay}" Click="Done_Click"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Title}" Style="{StaticResource Text.Body}"/>
+                                        <TextBlock Text="{Binding DueAt, Converter={StaticResource FriendlyDate}}"
+                                                   Style="{StaticResource Text.Caption}" Margin="0,2,0,0"
+                                                   Visibility="{Binding DueAt, Converter={StaticResource NotNullToVis}}"/>
+                                    </StackPanel>
+
+                                    <Button Grid.Column="2" Style="{StaticResource Button.Icon}" Click="Delete_Click" ToolTip="Delete">
+                                        <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons" FontSize="13"
+                                                   Foreground="{DynamicResource Brush.Danger}"/>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>
