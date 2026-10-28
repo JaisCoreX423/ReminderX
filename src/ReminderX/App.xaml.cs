@@ -40,6 +40,20 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Claude Desktop launches this mode as a command-based MCP server; it's only a relay to the
+        // running app, so it skips everything else (no window, no tray, no single-instance check).
+        if (e.Args.Contains("--mcp-stdio", StringComparer.OrdinalIgnoreCase))
+        {
+            Task.Run(async () =>
+            {
+                int code;
+                try { code = await McpStdioBridge.RunAsync(); }
+                catch (Exception ex) { Logger.Log($"MCP stdio bridge failed: {ex.Message}"); code = 1; }
+                await Dispatcher.InvokeAsync(() => Shutdown(code));
+            });
+            return;
+        }
+
         DispatcherUnhandledException += (_, args) =>
         {
             Logger.Log($"UNHANDLED (UI thread): {args.Exception}");
@@ -242,6 +256,14 @@ public partial class App : Application
                         Environment.Exit(0);
                     }, DispatcherPriority.ApplicationIdle);
                 }, DispatcherPriority.ApplicationIdle);
+            });
+        }
+        else if (Has("--test-review"))
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                ShowMainWindow();
+                _mainWindow!.RemindersPanel.OpenReview(todayOnly: false);
             });
         }
         else if (Has("--test-alert"))

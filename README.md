@@ -16,7 +16,8 @@ Developed by Alfred Ibarra & Claude.
 Download `ReminderXSetup.exe` from the [latest release](../../releases/latest) and run it. It
 installs to `%LocalAppData%\Programs\ReminderX` (no admin rights needed), creates a Desktop
 shortcut, registers a per-user logon task (`ReminderX`, runs with `--background` so it starts
-straight into the tray), launches the app and closes itself. No .NET runtime is needed.
+straight into the tray), registers the MCP server in Claude Desktop and Claude Code (see below),
+launches the app and closes itself. No .NET runtime is needed.
 
 **If the logon task doesn't get created** (some locked-down environments block `schtasks`), open
 Settings inside the app and toggle "Start with Windows". It registers the same task.
@@ -58,8 +59,15 @@ ReminderXSetup.exe --uninstall --remove-data # also deletes %LocalAppData%\Remin
 - **Opening it**: single-click the tray icon, or use the taskbar pin / Start menu / Desktop shortcut
   (if it's already running in the tray, that brings the existing window up). Right-click the tray
   icon for New Reminder / New To-Do / Exit.
-- **Reminders**: one-time (pick a date and time) or recurring (every N seconds/minutes/hours, or
-  every N days/weeks/months at a specific time; weekly can target specific weekdays).
+- **Reminders**: one-time (pick a date and time), recurring (every N seconds/minutes/hours, or
+  every N days/weeks/months at a specific time; weekly can target specific weekdays), or a timer
+  (goes off in N weeks/days/hours/minutes/seconds). Time fields take the 15-minute presets or any
+  time you type: `9:37 AM`, `9:37p`, `21:37`, `2137`.
+- **Review Outlook & Teams**: the **Today** and **Last N days** buttons on Reminders run Claude
+  Code in the background (`claude -p`, Sonnet, read-only Microsoft 365 tools) to read your email,
+  calendar and Teams chats and suggest reminders. It checks your existing reminders and to-dos first
+  and drops duplicates; you tick which suggestions to create. N is set in Settings (1/3/7/14 days).
+  Needs Claude Code installed and signed in, with the Microsoft 365 connector enabled on claude.ai.
 - **Alerts**: when a reminder is due, a chime plays, every monitor dims and a card appears on the
   screen your mouse is on, with **Complete** (Enter), **Snooze 10 min** (Esc), **Open reminder** and
   **Dismiss**. Several due at once queue up ("1 more waiting"). If you only open it or ignore it, it
@@ -77,14 +85,24 @@ ReminderXSetup.exe --uninstall --remove-data # also deletes %LocalAppData%\Remin
 ## Connecting an AI client (MCP)
 
 While ReminderX is running it serves MCP tools over HTTP on `127.0.0.1` only (never the network).
-Settings shows the exact command and lets you change the port. From Claude Code:
+Opening `http://127.0.0.1:8787/mcp` in a browser shows a status page.
 
-```bash
-claude mcp add --transport http --scope user reminderx http://127.0.0.1:8787/mcp
-```
+The installer registers it for you:
+
+- **Claude Desktop**: adds `reminderx` to `%APPDATA%\Claude\claude_desktop_config.json` as
+  `ReminderX.exe --mcp-stdio`, a small stdio bridge to the running app (Claude Desktop only loads
+  command-based servers). The original file is backed up to `claude_desktop_config.json.reminderx-backup`.
+  Restart Claude Desktop afterwards.
+- **Claude Code**: runs `claude mcp add --transport http --scope user reminderx http://127.0.0.1:8787/mcp`
+  if the `claude` CLI is installed.
+
+To redo it by hand: `ReminderXSetup.exe --claude-register` (or `--claude-unregister`). Settings
+shows the Claude Code command and lets you change the port.
 
 Tools: `list_reminders`, `get_reminder`, `create_reminder`, `complete_reminder`, `snooze_reminder`,
 `delete_reminder`, `list_todos`, `create_todo`, `complete_todo`, `delete_todo`, `get_history`.
+`create_reminder` and `create_todo` skip an item when an active one with the same title exists
+(pass `skipIfDuplicate: false` to force it).
 
 ## Project layout
 

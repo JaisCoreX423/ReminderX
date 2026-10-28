@@ -40,8 +40,17 @@ public class NotificationService
     {
         if (_reminders.GetSettings().AlertStyle == AlertStyle.Toast)
         {
-            ShowToast(reminder);
-            return;
+            try
+            {
+                ShowToast(reminder);
+                return;
+            }
+            catch (Exception ex)
+            {
+                // Never swallow a reminder: if the Windows notification can't be built or shown,
+                // fall back to the full-screen alert.
+                Logger.Log($"Toast failed for \"{reminder.Title}\", showing full-screen alert instead: {ex.Message}");
+            }
         }
 
         System.Windows.Application.Current?.Dispatcher.BeginInvoke(() => _alerts.Enqueue(reminder));
@@ -54,8 +63,9 @@ public class NotificationService
             .AddArgument(ToastArgsKeys.ReminderId, reminder.Id)
             .AddText(reminder.Title, hintMaxLines: 2);
 
+        // The toolkit rejects hintMaxLines above 2 (that used to throw for every reminder with a description).
         if (!string.IsNullOrWhiteSpace(reminder.Description))
-            builder.AddText(reminder.Description, hintMaxLines: 3);
+            builder.AddText(reminder.Description, hintMaxLines: 2);
 
         var image = reminder.Attachments.FirstOrDefault(a => a.IsImage);
         if (image != null)
@@ -88,14 +98,14 @@ public class NotificationService
         if (!_reminders.GetSettings().SoundEnabled)
             builder.AddAudio(new ToastAudio { Silent = true });
 
-        try
+        if (AppHost.IsTestMode)
         {
-            builder.Show();
+            // Test instances must not register a toast identity for a scratch exe in the user's registry.
+            Logger.Log($"Toast built for \"{reminder.Title}\" (test mode, not shown)");
+            return;
         }
-        catch (Exception ex)
-        {
-            Logger.Log($"Failed to show toast for {reminder.Id}: {ex.Message}");
-        }
+
+        builder.Show(); // failures propagate to ShowReminder, which falls back to the full-screen alert
     }
 
     public static void ClearAll()

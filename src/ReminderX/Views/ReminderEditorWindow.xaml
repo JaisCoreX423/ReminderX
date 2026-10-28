@@ -44,8 +44,38 @@
                     <StackPanel Orientation="Horizontal">
                         <RadioButton x:Name="OneTimeRadio" Content="One-time" GroupName="Type" IsChecked="True"
                                      Checked="TypeChanged" Margin="0,0,20,0" Foreground="{DynamicResource Brush.TextPrimary}"/>
-                        <RadioButton x:Name="RecurringRadio" Content="Recurring" GroupName="Type"
+                        <RadioButton x:Name="RecurringRadio" Content="Recurring" GroupName="Type" Margin="0,0,20,0"
                                      Checked="TypeChanged" Foreground="{DynamicResource Brush.TextPrimary}"/>
+                        <RadioButton x:Name="TimerRadio" Content="Timer" GroupName="Type"
+                                     Checked="TypeChanged" Foreground="{DynamicResource Brush.TextPrimary}"/>
+                    </StackPanel>
+
+                    <!-- Timer: goes off a set amount of time from now -->
+                    <StackPanel x:Name="TimerPanel" Margin="0,14,0,0" Visibility="Collapsed">
+                        <TextBlock Text="GOES OFF IN" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+                        <UniformGrid Columns="5">
+                            <StackPanel Margin="0,0,6,0">
+                                <TextBox x:Name="TimerWeeks" Text="0" HorizontalContentAlignment="Center" TextChanged="TimerField_Changed"/>
+                                <TextBlock Text="weeks" Style="{StaticResource Text.Caption}" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,6,0">
+                                <TextBox x:Name="TimerDays" Text="0" HorizontalContentAlignment="Center" TextChanged="TimerField_Changed"/>
+                                <TextBlock Text="days" Style="{StaticResource Text.Caption}" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,6,0">
+                                <TextBox x:Name="TimerHours" Text="0" HorizontalContentAlignment="Center" TextChanged="TimerField_Changed"/>
+                                <TextBlock Text="hours" Style="{StaticResource Text.Caption}" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,6,0">
+                                <TextBox x:Name="TimerMinutes" Text="30" HorizontalContentAlignment="Center" TextChanged="TimerField_Changed"/>
+                                <TextBlock Text="minutes" Style="{StaticResource Text.Caption}" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBox x:Name="TimerSeconds" Text="0" HorizontalContentAlignment="Center" TextChanged="TimerField_Changed"/>
+                                <TextBlock Text="seconds" Style="{StaticResource Text.Caption}" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <TextBlock x:Name="TimerPreview" Style="{StaticResource Text.Caption}" FontSize="12.5" Margin="0,8,0,0"/>
                     </StackPanel>
 
                     <!-- One-time -->

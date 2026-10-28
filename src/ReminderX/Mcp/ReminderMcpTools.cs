@@ -45,7 +45,8 @@ public static class ReminderMcpTools
         "Create a new reminder. dueAt must be an ISO-8601 local date/time, e.g. 2026-11-02T09:00:00. " +
         "For a recurring reminder, also set recurrenceUnit (Seconds|Minutes|Hours|Days|Weeks|Months) and recurrenceInterval " +
         "(e.g. unit=Days, interval=3 means every 3 days). recurrenceTimeOfDay (HH:mm) sets the fire time for Days/Weeks/Months " +
-        "recurrences; it defaults to the time in dueAt.")]
+        "recurrences; it defaults to the time in dueAt. Skips (and says so) when an active reminder or open " +
+        "to-do with the same title already exists, unless skipIfDuplicate=false.")]
     public static string CreateReminder(
         ReminderService service,
         string title,
@@ -53,8 +54,12 @@ public static class ReminderMcpTools
         string description = "",
         string? recurrenceUnit = null,
         int recurrenceInterval = 1,
-        string? recurrenceTimeOfDay = null)
+        string? recurrenceTimeOfDay = null,
+        bool skipIfDuplicate = true)
     {
+        if (skipIfDuplicate && service.FindActiveDuplicateTitle(title) is { } existing)
+            return ToJson(new { skipped = "duplicate", existingTitle = existing });
+
         if (!DateTime.TryParse(dueAt, null, System.Globalization.DateTimeStyles.None, out var due))
             return ToJson(new { error = "invalid_dueAt", detail = "Could not parse dueAt as a date/time." });
 
@@ -122,9 +127,14 @@ public static class ReminderMcpTools
 
     [McpServerTool, Description(
         "Create a to-do item. dueAt is optional ISO-8601 local date/time. When dueAt is set and createReminder " +
-        "is true (the default), a matching reminder is created automatically.")]
-    public static string CreateTodo(ReminderService service, string title, string notes = "", string? dueAt = null, bool createReminder = true)
+        "is true (the default), a matching reminder is created automatically. Skips (and says so) when an " +
+        "active reminder or open to-do with the same title already exists, unless skipIfDuplicate=false.")]
+    public static string CreateTodo(ReminderService service, string title, string notes = "", string? dueAt = null,
+        bool createReminder = true, bool skipIfDuplicate = true)
     {
+        if (skipIfDuplicate && service.FindActiveDuplicateTitle(title) is { } existing)
+            return ToJson(new { skipped = "duplicate", existingTitle = existing });
+
         DateTime? due = null;
         if (!string.IsNullOrWhiteSpace(dueAt))
         {

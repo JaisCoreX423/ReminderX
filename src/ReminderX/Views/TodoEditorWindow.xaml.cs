@@ -14,11 +14,9 @@ public partial class TodoEditorWindow : Window
     public TodoEditorWindow()
     {
         InitializeComponent();
-        DueTimeCombo.ItemsSource = TimeOptions;
-        DueTimeCombo.ItemTemplate = (DataTemplate)FindResource("DisplayTextItemTemplate");
-        DueTimeCombo.SelectedValuePath = "Value";
+        TimeOption.ConfigureEditable(DueTimeCombo, TimeOptions, (DataTemplate)FindResource("DisplayTextItemTemplate"));
         DueDatePicker.SelectedDate = DateTime.Today;
-        DueTimeCombo.SelectedValue = new TimeSpan(9, 0, 0);
+        TimeOption.SetTime(DueTimeCombo, new TimeSpan(9, 0, 0));
 
         ContentRendered += (_, _) =>
         {
@@ -56,8 +54,13 @@ public partial class TodoEditorWindow : Window
         DateTime? dueAt = null;
         if (HasDueDateCheck.IsChecked == true)
         {
+            if (!TimeOption.TryParse(DueTimeCombo.Text, out var time))
+            {
+                MessageBox.Show(this, "Enter a time like 9:37 AM or 21:37.", "ReminderX",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
             var date = DueDatePicker.SelectedDate ?? DateTime.Today;
-            var time = (TimeSpan)(DueTimeCombo.SelectedValue ?? TimeSpan.Zero);
             dueAt = date.Date.Add(time);
         }
 

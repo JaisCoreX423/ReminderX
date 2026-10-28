@@ -40,13 +40,8 @@ public partial class ReminderEditorWindow : Window
 
         var displayTemplate = (DataTemplate)FindResource("DisplayTextItemTemplate");
 
-        DueTimeCombo.ItemsSource = TimeOptions;
-        DueTimeCombo.ItemTemplate = displayTemplate;
-        DueTimeCombo.SelectedValuePath = "Value";
-
-        RecurTimeCombo.ItemsSource = TimeOptions;
-        RecurTimeCombo.ItemTemplate = displayTemplate;
-        RecurTimeCombo.SelectedValuePath = "Value";
+        TimeOption.ConfigureEditable(DueTimeCombo, TimeOptions, displayTemplate);
+        TimeOption.ConfigureEditable(RecurTimeCombo, TimeOptions, displayTemplate);
 
         UnitCombo.ItemsSource = UnitOptions;
         UnitCombo.ItemTemplate = displayTemplate;
@@ -57,8 +52,8 @@ public partial class ReminderEditorWindow : Window
 
         DueDatePicker.SelectedDate = DateTime.Today;
         RecurStartDatePicker.SelectedDate = DateTime.Today;
-        DueTimeCombo.SelectedValue = new TimeSpan(9, 0, 0);
-        RecurTimeCombo.SelectedValue = new TimeSpan(9, 0, 0);
+        TimeOption.SetTime(DueTimeCombo, new TimeSpan(9, 0, 0));
+        TimeOption.SetTime(RecurTimeCombo, new TimeSpan(9, 0, 0));
         UnitCombo.SelectedValue = RecurrenceUnit.Days;
 
         if (editing != null)
@@ -75,7 +70,7 @@ public partial class ReminderEditorWindow : Window
             {
                 OneTimeRadio.IsChecked = true;
                 DueDatePicker.SelectedDate = editing.DueAt.Date;
-                DueTimeCombo.SelectedValue = RoundToNearestOption(editing.DueAt.TimeOfDay);
+                TimeOption.SetTime(DueTimeCombo, new TimeSpan(editing.DueAt.Hour, editing.DueAt.Minute, 0));
             }
             else
             {
@@ -83,7 +78,7 @@ public partial class ReminderEditorWindow : Window
                 var rule = editing.Recurrence;
                 IntervalBox.Text = rule.Interval.ToString();
                 UnitCombo.SelectedValue = rule.Unit;
-                RecurTimeCombo.SelectedValue = RoundToNearestOption(rule.TimeOfDay);
+                TimeOption.SetTime(RecurTimeCombo, new TimeSpan(rule.TimeOfDay.Hours, rule.TimeOfDay.Minutes, 0));
                 RecurStartDatePicker.SelectedDate = editing.DueAt.Date;
                 foreach (ToggleButton tb in WeekdaysPicker.Children)
                 {
@@ -111,10 +106,13 @@ public partial class ReminderEditorWindow : Window
         SourceInitialized += (_, _) => Logger.Log("ReminderEditorWindow: SourceInitialized event fired");
     }
 
-    private static TimeSpan RoundToNearestOption(TimeSpan t) => TimeOption.RoundToNearest(TimeOptions, t);
-
     private void RunDiagSnapshots()
     {
+        foreach (var input in new[] { "9:37 AM", "9:37am", "9:37 p", "21:37", "9 am", "2137", "7:05 PM", "nonsense" })
+            Logger.Log($"DIAG time parse \"{input}\" -> " +
+                       (TimeOption.TryParse(input, out var t) ? TimeOption.Format(t) : "rejected"));
+
+        DueTimeCombo.Text = "9:37 AM";
         DiagSnapshot.Save((FrameworkElement)Content, "editor", Background);
 
         DueTimeCombo.IsDropDownOpen = true;
@@ -149,8 +147,14 @@ public partial class ReminderEditorWindow : Window
                     Dispatcher.BeginInvoke(() =>
                     {
                         DiagSnapshot.Save((FrameworkElement)Content, "editor-recurring", Background);
-                        Logger.Log("DiagSnapshot: done, exiting test instance");
-                        Environment.Exit(0);
+                        TimerRadio.IsChecked = true;
+                        TimerHours.Text = "2";
+                        Dispatcher.BeginInvoke(() =>
+                        {
+                            DiagSnapshot.Save((FrameworkElement)Content, "editor-timer", Background);
+                            Logger.Log("DiagSnapshot: done, exiting test instance");
+                            Environment.Exit(0);
+                        }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
                     }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
                 }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
@@ -184,9 +188,34 @@ public partial class ReminderEditorWindow : Window
 
     private void TypeChanged(object sender, RoutedEventArgs e)
     {
-        if (OneTimePanel == null || RecurringPanel == null) return;
+        if (OneTimePanel == null || RecurringPanel == null || TimerPanel == null) return;
         OneTimePanel.Visibility = OneTimeRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         RecurringPanel.Visibility = RecurringRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        TimerPanel.Visibility = TimerRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        UpdateTimerPreview();
+    }
+
+    /// <summary>The countdown entered in the Timer fields, or null when it's all zero/invalid.</summary>
+    private TimeSpan? TimerSpan()
+    {
+        static int Read(System.Windows.Controls.TextBox box) =>
+            int.TryParse(box.Text.Trim(), out var v) && v > 0 ? v : 0;
+
+        var span = TimeSpan.FromDays(Read(TimerWeeks) * 7 + Read(TimerDays))
+                   + TimeSpan.FromHours(Read(TimerHours))
+                   + TimeSpan.FromMinutes(Read(TimerMinutes))
+                   + TimeSpan.FromSeconds(Read(TimerSeconds));
+        return span > TimeSpan.Zero ? span : null;
+    }
+
+    private void TimerField_Changed(object sender, System.Windows.Controls.TextChangedEventArgs e) => UpdateTimerPreview();
+
+    private void UpdateTimerPreview()
+    {
+        if (TimerPreview == null || TimerWeeks == null) return;
+        TimerPreview.Text = TimerSpan() is { } span
+            ? $"Goes off {DateTime.Now.Add(span):ddd, MMM d 'at' h:mm:ss tt}"
+            : "Set how long from now.";
     }
 
     private void UnitCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -254,14 +283,32 @@ public partial class ReminderEditorWindow : Window
             renotifyMinutes = 10;
 
         var reminder = _editing ?? new Reminder();
+        var previousDueAt = reminder.DueAt;
+        var previousRule = reminder.Recurrence?.Describe();
         reminder.Title = title;
         reminder.Description = DescriptionBox.Text.Trim();
         reminder.RenotifyMinutes = renotifyMinutes;
 
-        if (OneTimeRadio.IsChecked == true)
+        if (TimerRadio.IsChecked == true)
         {
+            if (TimerSpan() is not { } span)
+            {
+                MessageBox.Show(this, "Set at least one of weeks, days, hours, minutes or seconds.", "ReminderX",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            reminder.DueAt = DateTime.Now.Add(span);
+            reminder.Recurrence = null;
+        }
+        else if (OneTimeRadio.IsChecked == true)
+        {
+            if (!TimeOption.TryParse(DueTimeCombo.Text, out var time))
+            {
+                MessageBox.Show(this, "Enter a time like 9:37 AM or 21:37.", "ReminderX",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
             var date = DueDatePicker.SelectedDate ?? DateTime.Today;
-            var time = (TimeSpan)(DueTimeCombo.SelectedValue ?? TimeSpan.Zero);
             reminder.DueAt = date.Date.Add(time);
             reminder.Recurrence = null;
         }
@@ -271,7 +318,14 @@ public partial class ReminderEditorWindow : Window
                 interval = 1;
 
             var unit = (RecurrenceUnit)(UnitCombo.SelectedValue ?? RecurrenceUnit.Days);
-            var time = (TimeSpan)(RecurTimeCombo.SelectedValue ?? TimeSpan.Zero);
+            var time = TimeSpan.Zero;
+            if (unit is RecurrenceUnit.Days or RecurrenceUnit.Weeks or RecurrenceUnit.Months &&
+                !TimeOption.TryParse(RecurTimeCombo.Text, out time))
+            {
+                MessageBox.Show(this, "Enter a time like 9:37 AM or 21:37.", "ReminderX",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
             var startDate = RecurStartDatePicker.SelectedDate ?? DateTime.Today;
 
             var days = new List<DayOfWeek>();
@@ -292,6 +346,14 @@ public partial class ReminderEditorWindow : Window
             reminder.DueAt = unit is RecurrenceUnit.Days or RecurrenceUnit.Weeks or RecurrenceUnit.Months
                 ? startDate.Date.Add(time)
                 : DateTime.Now;
+        }
+
+        // A reminder whose time changed must fire again at the new time, even if it already fired.
+        if (_editing != null && (reminder.DueAt != previousDueAt || reminder.Recurrence?.Describe() != previousRule))
+        {
+            reminder.LastShownAt = null;
+            reminder.NextRenotifyAt = null;
+            reminder.State = ReminderState.Pending;
         }
 
         // Reconcile attachments: keep existing ones still present, copy in new ones.

@@ -9,8 +9,20 @@
 
         <Grid Grid.Row="0" Margin="0,0,0,16">
             <TextBlock Text="Reminders" Style="{StaticResource Text.Title}"/>
-            <Button Content="+ New Reminder" Style="{StaticResource Button.Primary}"
-                    HorizontalAlignment="Right" Click="NewReminder_Click"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Style="{StaticResource Button.Secondary}" Click="ReviewToday_Click" Margin="0,0,8,0"
+                        ToolTip="Ask Claude what to remember from today's Outlook and Teams">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE735;" FontFamily="Segoe Fluent Icons" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Today"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ReviewDaysButton" Style="{StaticResource Button.Secondary}" Click="ReviewDays_Click" Margin="0,0,8,0"
+                        ToolTip="Ask Claude what to remember from recent Outlook and Teams activity">
+                    <TextBlock x:Name="ReviewDaysText" Text="Last 3 days"/>
+                </Button>
+                <Button Content="+ New Reminder" Style="{StaticResource Button.Primary}" Click="NewReminder_Click"/>
+            </StackPanel>
         </Grid>
 
         <Grid Grid.Row="1">

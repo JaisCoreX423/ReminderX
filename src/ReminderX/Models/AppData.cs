@@ -28,6 +28,9 @@ public class AppSettings
 
     public bool AutoUpdate { get; set; } = true;
 
+    /// <summary>How far back "Review Outlook & Teams" looks.</summary>
+    public int ReviewDaysBack { get; set; } = 3;
+
     public bool McpServerEnabled { get; set; } = true;
 
     public int McpServerPort { get; set; } = 8787;

@@ -11,7 +11,7 @@
     <SelfContained>false</SelfContained>
     <InvariantGlobalization>true</InvariantGlobalization>
     <ApplicationIcon>..\ReminderX\Assets\reminderx.ico</ApplicationIcon>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
   </PropertyGroup>
 
   <ItemGroup Condition="Exists('payload.zip')">

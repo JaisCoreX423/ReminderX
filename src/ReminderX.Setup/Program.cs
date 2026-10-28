@@ -32,6 +32,24 @@ internal static class Program
 
     private static int Main(string[] args)
     {
+        if (args.Any(a => a.Equals("--version", StringComparison.OrdinalIgnoreCase)))
+        {
+            Console.WriteLine(Assembly.GetExecutingAssembly().GetName().Version?.ToString(3));
+            return 0;
+        }
+
+        // Maintenance: (re)do or undo only the Claude Desktop / Claude Code hookup.
+        if (args.Any(a => a.Equals("--claude-register", StringComparison.OrdinalIgnoreCase)))
+        {
+            ClaudeIntegration.Register(Path.Combine(InstallDir, "ReminderX.exe"), DataDir, markerPath: null);
+            return 0;
+        }
+        if (args.Any(a => a.Equals("--claude-unregister", StringComparison.OrdinalIgnoreCase)))
+        {
+            ClaudeIntegration.Unregister();
+            return 0;
+        }
+
         Silent = args.Any(a => a.Equals("--silent", StringComparison.OrdinalIgnoreCase));
         StreamWriter? log = null;
         if (Silent)
@@ -121,18 +139,34 @@ internal static class Program
             catch (Exception ex) { Console.WriteLine($"  (shortcut not created: {ex.Message})"); }
         }
 
+        // Interactive installs always (re)register; silent updates only once, so an update brings
+        // the registration to people who installed before it existed but never re-adds one the user
+        // removed on purpose.
+        if (!Silent || !File.Exists(ClaudeRegisteredMarker))
+            ClaudeIntegration.Register(exePath, DataDir, ClaudeRegisteredMarker);
+
         Console.WriteLine();
         Console.WriteLine("Done.");
         Console.WriteLine($"  Installed to: {InstallDir}");
         Console.WriteLine($"  Data stored at: {DataDir}");
         Console.WriteLine();
         Console.WriteLine("Launching ReminderX...");
-        Process.Start(new ProcessStartInfo(exePath, Silent ? "--background" : "")
+        if (Environment.IsPrivilegedProcess)
         {
-            UseShellExecute = true,
-            WorkingDirectory = InstallDir
-        });
+            // Setup runs as admin, the app must not: explorer.exe starts it with the normal user token.
+            Process.Start(new ProcessStartInfo("explorer.exe", $"\"{exePath}\"") { UseShellExecute = false });
+        }
+        else
+        {
+            Process.Start(new ProcessStartInfo(exePath, Silent ? "--background" : "")
+            {
+                UseShellExecute = true,
+                WorkingDirectory = InstallDir
+            });
+        }
     }
+
+    private static string ClaudeRegisteredMarker => Path.Combine(DataDir, "claude-registered");
 
     private static void ExtractPayload(string destinationDir)
     {
@@ -198,6 +232,9 @@ internal static class Program
         Console.WriteLine("Removing shortcuts...");
         TryDelete(DesktopShortcut);
         TryDelete(StartMenuShortcut);
+
+        ClaudeIntegration.Unregister();
+        TryDelete(ClaudeRegisteredMarker);
 
         Console.WriteLine($"Removing program files ({InstallDir})...");
         if (Directory.Exists(InstallDir))

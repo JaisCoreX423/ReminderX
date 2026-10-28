@@ -35,7 +35,15 @@ public static class DiagSnapshot
             {
                 var rect = new Rect(0, 0, w, h);
                 if (background != null) ctx.DrawRectangle(background, null, rect);
-                ctx.DrawRectangle(new VisualBrush(element), null, rect);
+                // Absolute viewbox: otherwise the brush stretches the content bounds, not the element's box.
+                ctx.DrawRectangle(new VisualBrush(element)
+                {
+                    ViewboxUnits = BrushMappingMode.Absolute,
+                    Viewbox = rect,
+                    Stretch = Stretch.None,
+                    AlignmentX = AlignmentX.Left,
+                    AlignmentY = AlignmentY.Top
+                }, null, rect);
             }
 
             var bitmap = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);

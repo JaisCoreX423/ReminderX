@@ -8,7 +8,7 @@ public class SchedulerService : IDisposable
     private readonly ReminderService _reminders;
     private readonly NotificationService _notifications;
     private Timer? _timer;
-    private readonly TimeSpan _tickInterval = TimeSpan.FromSeconds(10);
+    private readonly TimeSpan _tickInterval = TimeSpan.FromSeconds(2); // short timers should land on time
     private bool _ticking;
 
     public SchedulerService(ReminderService reminders, NotificationService notifications)
@@ -32,8 +32,16 @@ public class SchedulerService : IDisposable
             var due = _reminders.GetDueReminders(now);
             foreach (var reminder in due)
             {
-                _notifications.ShowReminder(reminder);
-                _reminders.MarkShown(reminder.Id, now);
+                // Isolated per reminder so one failure can't block every other due reminder.
+                try
+                {
+                    _notifications.ShowReminder(reminder);
+                    _reminders.MarkShown(reminder.Id, now);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log($"Couldn't show \"{reminder.Title}\": {ex.Message}");
+                }
             }
         }
         catch (Exception ex)

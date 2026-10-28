@@ -171,6 +171,27 @@ public class ReminderService
 
     public string GetAttachmentFullPath(Attachment a) => _store.GetAttachmentFullPath(a);
 
+    /// <summary>
+    /// An active reminder or open to-do whose title matches, ignoring case, spacing and punctuation.
+    /// Used to keep AI-created items from duplicating what's already there.
+    /// </summary>
+    public string? FindActiveDuplicateTitle(string title)
+    {
+        var key = NormalizeTitle(title);
+        if (key.Length == 0) return null;
+
+        return _store.Read(d =>
+            d.Reminders.Where(r => r.State is ReminderState.Pending or ReminderState.Snoozed)
+                .Select(r => r.Title)
+                .Concat(d.Todos.Where(t => !t.IsDone).Select(t => t.Title))
+                .FirstOrDefault(t => NormalizeTitle(t) == key));
+    }
+
+    public static string NormalizeTitle(string title) =>
+        string.Join(' ', new string(title.ToLowerInvariant()
+                .Select(c => char.IsLetterOrDigit(c) ? c : ' ').ToArray())
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
     // ---------- Todos ----------
 
     public List<TodoItem> GetAllTodos() =>

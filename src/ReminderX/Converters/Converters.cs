@@ -35,9 +35,10 @@ public class NullToVisibilityConverter : IValueConverter
 
     public object Convert(object? value, Type targetType, object parameter, CultureInfo culture)
     {
+        // Visible when null/blank; Invert = visible only when there is a value.
         var isNull = value == null || (value is string s && string.IsNullOrWhiteSpace(s));
         if (Invert) isNull = !isNull;
-        return isNull ? Visibility.Collapsed : Visibility.Visible;
+        return isNull ? Visibility.Visible : Visibility.Collapsed;
     }
 
     public object ConvertBack(object? value, Type targetType, object parameter, CultureInfo culture)

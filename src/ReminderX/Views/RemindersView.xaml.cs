@@ -25,7 +25,22 @@ public partial class RemindersView : UserControl
 
         ItemsHost.ItemsSource = items;
         EmptyState.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        var days = AppHost.Reminders.GetSettings().ReviewDaysBack;
+        ReviewDaysText.Text = $"Last {days} day{(days == 1 ? "" : "s")}";
     }
+
+    /// <summary>Opens "Review Outlook &amp; Teams" for today only or for the configured number of days.</summary>
+    public void OpenReview(bool todayOnly)
+    {
+        var dialog = new ReviewWindow(todayOnly, AppHost.Reminders.GetSettings().ReviewDaysBack) { Owner = Window.GetWindow(this) };
+        dialog.ShowDialog();
+        Refresh();
+    }
+
+    private void ReviewToday_Click(object sender, RoutedEventArgs e) => OpenReview(todayOnly: true);
+
+    private void ReviewDays_Click(object sender, RoutedEventArgs e) => OpenReview(todayOnly: false);
 
     public void OpenNewReminderDialog()
     {

@@ -126,6 +126,30 @@
         </Setter>
     </Style>
 
+    <!-- Round selection check (review suggestions) -->
+    <Style x:Key="CheckCircle" TargetType="CheckBox">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid Width="22" Height="22" Background="Transparent">
+                        <Ellipse x:Name="Ring" Stroke="{DynamicResource Brush.TextSecondary}" StrokeThickness="1.5"/>
+                        <Ellipse x:Name="Fill" Fill="{DynamicResource Brush.Accent}" Visibility="Collapsed"/>
+                        <Path x:Name="Mark" Data="M6,11.5 L9.5,15 L16,8" Stroke="White" StrokeThickness="2"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Fill" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="Mark" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="Ring" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- One option of a segmented control (e.g. System / Light / Dark) -->
     <Style x:Key="Segment" TargetType="RadioButton">
         <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
@@ -278,6 +302,22 @@
         <TextBlock Text="{Binding Display}"/>
     </DataTemplate>
 
+    <!-- Bare text box used inside an editable ComboBox (the ComboBox draws the border). -->
+    <Style x:Key="ComboEditableTextBox" TargetType="TextBox">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource Brush.Accent}"/>
+        <Setter Property="SelectionBrush" Value="{DynamicResource Brush.Accent}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <ScrollViewer x:Name="PART_ContentHost" Background="Transparent" Focusable="False"
+                                  HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ComboBox: fully templated. The default WPF ComboBox template's dropdown Popup does not
          reliably pick up simple Background/Foreground setters, which left it rendering as an
          unstyled white box with invisible (white-on-white) text under the dark theme. -->
@@ -347,6 +387,13 @@
                                           Margin="{TemplateBinding Padding}"
                                           HorizontalAlignment="Left" VerticalAlignment="Center"
                                           TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        <!-- Used when IsEditable=True (e.g. typing any time of day); leaves room for the arrow. -->
+                        <TextBox x:Name="PART_EditableTextBox" Visibility="Collapsed"
+                                 Style="{StaticResource ComboEditableTextBox}"
+                                 Margin="10,0,28,0" VerticalAlignment="Center"
+                                 Foreground="{TemplateBinding Foreground}"
+                                 FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}"
+                                 IsReadOnly="{TemplateBinding IsReadOnly}"/>
                         <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}"
                                AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
                             <Border Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Border}"
@@ -364,6 +411,13 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Bg" Property="Opacity" Value="0.6"/>
+                        </Trigger>
+                        <Trigger Property="IsEditable" Value="True">
+                            <Setter TargetName="ContentSite" Property="Visibility" Value="Collapsed"/>
+                            <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Brush.Accent}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

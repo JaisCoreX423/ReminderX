@@ -6,6 +6,7 @@ using ReminderX.Services;
 using UserControl = System.Windows.Controls.UserControl;
 using MessageBox = System.Windows.MessageBox;
 using Clipboard = System.Windows.Clipboard;
+using RadioButton = System.Windows.Controls.RadioButton;
 
 namespace ReminderX.Views;
 
@@ -32,6 +33,8 @@ public partial class SettingsView : UserControl
         StartWithWindowsCheck.IsChecked = AutostartService.IsEnabled();
         SoundCheck.IsChecked = settings.SoundEnabled;
         FullScreenAlertsCheck.IsChecked = settings.AlertStyle == AlertStyle.FullScreen;
+        foreach (var segment in ReviewDaysSegments.Children.OfType<RadioButton>())
+            segment.IsChecked = (string)segment.Tag == settings.ReviewDaysBack.ToString();
         McpEnabledCheck.IsChecked = settings.McpServerEnabled;
         PortBox.Text = settings.McpServerPort.ToString();
         UpdateMcpStatus();
@@ -51,6 +54,12 @@ public partial class SettingsView : UserControl
         if (sender is not FrameworkElement { Tag: string theme }) return;
         AppHost.Reminders.UpdateSettings(s => s.Theme = theme);
         App.ApplyTheme();
+    }
+
+    private void ReviewDays_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string tag } && int.TryParse(tag, out var days))
+            AppHost.Reminders.UpdateSettings(s => s.ReviewDaysBack = days);
     }
 
     private void UpdateUpdaterUi()

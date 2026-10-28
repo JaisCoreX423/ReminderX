@@ -225,11 +225,15 @@ public class UpdateService
         Logger.Log($"Installing update {LatestVersionText} from {_downloadedInstaller}");
         try
         {
-            Process.Start(new ProcessStartInfo(_downloadedInstaller, "--silent")
+            var psi = new ProcessStartInfo(_downloadedInstaller, "--silent")
             {
                 UseShellExecute = false,
                 CreateNoWindow = true
-            });
+            };
+            // The installer asks for admin when double-clicked; an update into the user's own folders
+            // doesn't need it, so run it as the current user — no UAC prompt while the app is idle.
+            psi.Environment["__COMPAT_LAYER"] = "RunAsInvoker";
+            Process.Start(psi);
             RequestShutdown?.Invoke();
         }
         catch (Exception ex)

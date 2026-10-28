@@ -73,6 +73,30 @@
 
                 <Border Style="{StaticResource Card}" Margin="0,0,0,14">
                     <StackPanel>
+                        <TextBlock Text="Review Outlook &amp; Teams" Style="{StaticResource Text.Heading}" Margin="0,0,0,4"/>
+                        <TextBlock Text="The Today and Last days buttons on Reminders ask Claude Code to read your email, calendar and Teams chats (read-only) and suggest reminders you don't have yet. Needs Claude Code signed in with the Microsoft 365 connector."
+                                   Style="{StaticResource Text.Caption}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                        <Grid>
+                            <TextBlock Text="Look back" VerticalAlignment="Center" Style="{StaticResource Text.Body}"/>
+                            <Border HorizontalAlignment="Right" VerticalAlignment="Center" Padding="2" CornerRadius="8"
+                                    Background="{DynamicResource Brush.SurfaceAlt}">
+                                <StackPanel x:Name="ReviewDaysSegments" Orientation="Horizontal">
+                                    <RadioButton Content="1 day" GroupName="ReviewDays" Tag="1"
+                                                 Style="{StaticResource Segment}" Click="ReviewDays_Click"/>
+                                    <RadioButton Content="3 days" GroupName="ReviewDays" Tag="3"
+                                                 Style="{StaticResource Segment}" Click="ReviewDays_Click"/>
+                                    <RadioButton Content="7 days" GroupName="ReviewDays" Tag="7"
+                                                 Style="{StaticResource Segment}" Click="ReviewDays_Click"/>
+                                    <RadioButton Content="14 days" GroupName="ReviewDays" Tag="14"
+                                                 Style="{StaticResource Segment}" Click="ReviewDays_Click"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+                    <StackPanel>
                         <TextBlock Text="AI access (MCP server)" Style="{StaticResource Text.Heading}" Margin="0,0,0,4"/>
                         <TextBlock Text="Lets an MCP-compatible AI client (Claude Code, Claude Desktop) list and create reminders and to-dos while ReminderX is running. Local machine only."
                                    Style="{StaticResource Text.Caption}" TextWrapping="Wrap" Margin="0,0,0,10"/>
