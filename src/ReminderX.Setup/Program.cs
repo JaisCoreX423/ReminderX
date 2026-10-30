@@ -41,12 +41,7 @@ internal static class Program
         // Maintenance: (re)do or undo only the Claude Desktop / Claude Code hookup.
         if (args.Any(a => a.Equals("--claude-register", StringComparison.OrdinalIgnoreCase)))
         {
-            if (ClaudeIntegration.Register(Path.Combine(InstallDir, "ReminderX.exe"), ClaudeIntegration.ReadPort(DataDir)) &&
-                ClaudeIntegration.IsDesktopRunning() &&
-                AskYesNo("ReminderX was added to Claude Desktop. Restart Claude Desktop now so it loads it?"))
-            {
-                ClaudeIntegration.RestartDesktop();
-            }
+            ConnectClaude(Path.Combine(InstallDir, "ReminderX.exe"), interactive: true);
             return 0;
         }
         if (args.Any(a => a.Equals("--claude-unregister", StringComparison.OrdinalIgnoreCase)))
@@ -85,6 +80,16 @@ internal static class Program
         {
             Console.WriteLine();
             Console.WriteLine($"FAILED: {ex.Message}");
+
+            // A failed auto-update must not leave the user without ReminderX: start what's installed.
+            var installedExe = Path.Combine(InstallDir, "ReminderX.exe");
+            if (Silent && File.Exists(installedExe) && Process.GetProcessesByName("ReminderX").Length == 0)
+            {
+                Console.WriteLine("Restarting the installed version...");
+                try { LaunchApp(installedExe); }
+                catch (Exception launchEx) { Console.WriteLine($"  (couldn't start it: {launchEx.Message})"); }
+            }
+
             if (!Silent) Pause(); // keep the window open on failure so the error is actually readable
             log?.Dispose();
             return 1;
@@ -144,22 +149,18 @@ internal static class Program
             catch (Exception ex) { Console.WriteLine($"  (shortcut not created: {ex.Message})"); }
         }
 
-        // Interactive installs always (re)register; silent updates only once, so an update brings
-        // the registration to people who installed before it existed but never re-adds one the user
-        // removed on purpose.
-        var desktopChanged = false;
-        if (!Silent || !File.Exists(ClaudeRegisteredMarker))
+        // Interactive installs always connect; silent updates put back an entry that went missing
+        // (e.g. Claude Desktop reinstalled or its config reset) without touching a correct one.
+        if (!Silent)
         {
-            desktopChanged = ClaudeIntegration.Register(exePath, ClaudeIntegration.ReadPort(DataDir));
-            try { File.WriteAllText(ClaudeRegisteredMarker, DateTime.Now.ToString("O")); }
-            catch { /* the marker only keeps silent updates from registering again */ }
+            ConnectClaude(exePath, interactive: true);
         }
-
-        // Claude Desktop reads its MCP config only at startup.
-        if (!Silent && desktopChanged && ClaudeIntegration.IsDesktopRunning() &&
-            AskYesNo("ReminderX was added to Claude Desktop. Restart Claude Desktop now so it loads it?"))
+        else
         {
-            ClaudeIntegration.RestartDesktop();
+            var (desktop, code) = ClaudeIntegration.GetStatus(ClaudeIntegration.ReadPort(DataDir));
+            if (desktop is ClaudeClientState.Missing or ClaudeClientState.WrongPort ||
+                code is ClaudeClientState.Missing or ClaudeClientState.WrongPort)
+                ConnectClaude(exePath, interactive: false);
         }
 
         Console.WriteLine();
@@ -168,6 +169,32 @@ internal static class Program
         Console.WriteLine($"  Data stored at: {DataDir}");
         Console.WriteLine();
         Console.WriteLine("Launching ReminderX...");
+        LaunchApp(exePath);
+    }
+
+    /// <summary>
+    /// Connects Claude Desktop and Claude Code and confirms the Desktop entry is really in the
+    /// config. Interactive: says so when it isn't, and offers to restart Claude Desktop so it loads it.
+    /// </summary>
+    private static void ConnectClaude(string exePath, bool interactive)
+    {
+        var result = ClaudeIntegration.Register(exePath, ClaudeIntegration.ReadPort(DataDir));
+        if (!interactive) return;
+
+        if (result.DesktopError != null)
+        {
+            ShowWarning($"ReminderX couldn't be added to Claude Desktop: {result.DesktopError}.\n\n" +
+                        "You can try again from ReminderX > Settings > AI access > Connect Claude.");
+        }
+        else if (result.DesktopChanged && ClaudeIntegration.IsDesktopRunning() &&
+                 AskYesNo("ReminderX was added to Claude Desktop. Restart Claude Desktop now so it loads it?"))
+        {
+            ClaudeIntegration.RestartDesktop();
+        }
+    }
+
+    private static void LaunchApp(string exePath)
+    {
         if (Environment.IsPrivilegedProcess)
         {
             // Setup runs as admin, the app must not: explorer.exe starts it with the normal user token.
@@ -213,9 +240,13 @@ internal static class Program
                     entry.ExtractToFile(destPath, overwrite: true);
                     break;
                 }
-                catch (IOException) when (attempt < 3)
+                catch (IOException) when (attempt < 20)
                 {
-                    Thread.Sleep(500); // file may still be releasing after StopRunningApp
+                    // The exe can stay locked for a few seconds after the app exits (antivirus scan,
+                    // a straggler instance). 1.0.3's first silent update failed here with 3 x 0.5 s.
+                    if (attempt == 1) Console.WriteLine($"  {entry.Name} is in use, waiting...");
+                    StopRunningApp();
+                    Thread.Sleep(1000);
                 }
             }
         }
@@ -290,6 +321,15 @@ internal static class Program
         const int IDYES = 6;
         return MessageBoxW(IntPtr.Zero, message, "ReminderX Setup",
             MB_YESNO | MB_ICONQUESTION | MB_TOPMOST | MB_SETFOREGROUND) == IDYES;
+    }
+
+    private static void ShowWarning(string message)
+    {
+        Console.WriteLine($"  {message}");
+        if (Environment.GetEnvironmentVariable("REMINDERX_TEST_ANSWER") is { Length: > 0 }) return;
+
+        const uint MB_OK = 0x0, MB_ICONWARNING = 0x30, MB_TOPMOST = 0x40000, MB_SETFOREGROUND = 0x10000;
+        MessageBoxW(IntPtr.Zero, message, "ReminderX Setup", MB_OK | MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND);
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]

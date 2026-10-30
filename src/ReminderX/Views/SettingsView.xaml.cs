@@ -65,10 +65,17 @@ public partial class SettingsView : UserControl
         ClaudeStatusText.Text = $"{Describe("Claude Desktop", desktop)}  ·  {Describe("Claude Code", code)}";
         McpCommandText.Text = ClaudeIntegration.ClaudeCodeCommand(port);
 
-        // Hidden once every installed Claude app points at this port; shows again when the port changes.
+        // The button is always there ("run it again" when Claude doesn't see ReminderX even though the
+        // entry looks right), but it's the primary action only when something is missing.
         var needsAction = desktop is ClaudeClientState.Missing or ClaudeClientState.WrongPort ||
                           code is ClaudeClientState.Missing or ClaudeClientState.WrongPort;
-        ClaudeConnectPanel.Visibility = needsAction ? Visibility.Visible : Visibility.Collapsed;
+        ReconnectButton.Content = needsAction ? "Connect Claude" : "Connect again";
+        ReconnectButton.Style = (Style)FindResource(needsAction ? "Button.Primary" : "Button.Secondary");
+
+        // The Claude Code command only when Claude Code doesn't point at this port (e.g. the port changed).
+        ClaudeConnectPanel.Visibility = code is ClaudeClientState.Missing or ClaudeClientState.WrongPort
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private async void ReconnectClaude_Click(object sender, RoutedEventArgs e)
@@ -81,31 +88,47 @@ public partial class SettingsView : UserControl
 
         var port = AppHost.Reminders.GetSettings().McpServerPort;
         var exePath = Environment.ProcessPath ?? "";
+        var owner = Window.GetWindow(this);
         ReconnectButton.IsEnabled = false;
         ReconnectButton.Content = "Connecting…";
         try
         {
-            var desktopChanged = await Task.Run(() => ClaudeIntegration.Register(exePath, port));
-            Logger.Log($"Reconnect Claude on port {port}: desktop config changed = {desktopChanged}");
+            var result = await Task.Run(() => ClaudeIntegration.Register(exePath, port));
+            Logger.Log($"Connect Claude on port {port}: desktop {result.Desktop} (changed {result.DesktopChanged}), " +
+                       $"code {result.Code}{(result.DesktopError != null ? ", error: " + result.DesktopError : "")}");
 
-            if (desktopChanged && ClaudeIntegration.IsDesktopRunning() &&
-                MessageBox.Show(Window.GetWindow(this),
-                    "ReminderX was updated in Claude Desktop. Restart Claude Desktop now so it loads it?",
-                    "ReminderX", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            if (result.DesktopError != null)
             {
-                await Task.Run(ClaudeIntegration.RestartDesktop);
+                MessageBox.Show(owner, $"ReminderX couldn't be added to Claude Desktop: {result.DesktopError}.",
+                    "ReminderX", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            else if (ClaudeIntegration.IsDesktopRunning())
+            {
+                // Claude Desktop only reads its config at startup, so a restart is what makes it show up.
+                var question = result.DesktopChanged
+                    ? "ReminderX was added to Claude Desktop. Restart Claude Desktop now so it loads it?"
+                    : "Claude Desktop already has ReminderX in its config. Restart Claude Desktop now to load it again?";
+                if (MessageBox.Show(owner, question, "ReminderX", MessageBoxButton.YesNo, MessageBoxImage.Question)
+                    == MessageBoxResult.Yes)
+                {
+                    await Task.Run(ClaudeIntegration.RestartDesktop);
+                }
+            }
+            else
+            {
+                MessageBox.Show(owner, "ReminderX is connected. Claude Desktop will load it the next time it starts.",
+                    "ReminderX", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
         catch (Exception ex)
         {
-            Logger.Log($"Reconnect Claude failed: {ex.Message}");
-            MessageBox.Show(Window.GetWindow(this), $"Couldn't update Claude: {ex.Message}", "ReminderX",
+            Logger.Log($"Connect Claude failed: {ex.Message}");
+            MessageBox.Show(owner, $"Couldn't update Claude: {ex.Message}", "ReminderX",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally
         {
             ReconnectButton.IsEnabled = true;
-            ReconnectButton.Content = "Reconnect Claude";
             UpdateClaudeStatus();
         }
     }

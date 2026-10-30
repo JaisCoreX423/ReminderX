@@ -123,22 +123,25 @@
                             <Button Grid.Column="4" Content="Apply" Style="{StaticResource Button.Secondary}" Click="ApplyPort_Click"/>
                         </Grid>
 
-                        <TextBlock x:Name="ClaudeStatusText" Style="{StaticResource Text.Caption}" Margin="0,12,0,0"
-                                   TextWrapping="Wrap"/>
+                        <Grid Margin="0,14,0,0">
+                            <StackPanel Margin="0,0,150,0">
+                                <TextBlock Text="Claude" Style="{StaticResource Text.Body}"/>
+                                <TextBlock x:Name="ClaudeStatusText" Style="{StaticResource Text.Caption}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <Button x:Name="ReconnectButton" Content="Connect Claude" Style="{StaticResource Button.Secondary}"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center" Click="ReconnectClaude_Click"
+                                    ToolTip="Adds ReminderX to Claude Desktop and Claude Code on this port, then checks it's there"/>
+                        </Grid>
 
-                        <!-- Only when Claude doesn't point at this port (port changed, or never connected) -->
+                        <!-- Only when Claude Code doesn't point at this port (port changed, or never connected) -->
                         <StackPanel x:Name="ClaudeConnectPanel" Visibility="Collapsed">
                             <TextBlock Text="CONNECT FROM CLAUDE CODE" Style="{StaticResource Text.Caption}" Margin="0,12,0,4"/>
                             <Border Background="{DynamicResource Brush.SurfaceAlt}" CornerRadius="8" Padding="10">
                                 <TextBlock x:Name="McpCommandText" Style="{StaticResource Text.Body}" FontFamily="Consolas"
                                            TextWrapping="Wrap"/>
                             </Border>
-                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                <Button x:Name="ReconnectButton" Content="Reconnect Claude" Style="{StaticResource Button.Primary}"
-                                        Click="ReconnectClaude_Click" Margin="0,0,8,0"
-                                        ToolTip="Points Claude Desktop and Claude Code at this port"/>
-                                <Button Content="Copy command" Style="{StaticResource Button.Secondary}" Click="CopyCommand_Click"/>
-                            </StackPanel>
+                            <Button Content="Copy command" Style="{StaticResource Button.Secondary}"
+                                    HorizontalAlignment="Left" Margin="0,8,0,0" Click="CopyCommand_Click"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>

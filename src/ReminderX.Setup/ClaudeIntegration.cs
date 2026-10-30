@@ -46,13 +46,32 @@ internal static class ClaudeIntegration
     public static string ClaudeCodeCommand(int port) =>
         $"claude mcp add --transport http --scope user {ServerName} {McpUrl(port)}";
 
-    /// <summary>Adds or updates both entries. Returns true when the Claude Desktop config changed.</summary>
-    public static bool Register(string exePath, int port)
+    public sealed record RegisterResult(bool DesktopChanged, ClaudeClientState Desktop, ClaudeClientState Code, string? DesktopError)
+    {
+        public bool AllConnected =>
+            Desktop is ClaudeClientState.Connected or ClaudeClientState.NotInstalled &&
+            Code is ClaudeClientState.Connected or ClaudeClientState.NotInstalled;
+    }
+
+    /// <summary>Adds or updates both entries, then reads them back to confirm they're there.</summary>
+    public static RegisterResult Register(string exePath, int port)
     {
         Console.WriteLine("Connecting ReminderX to Claude...");
-        var desktopChanged = RegisterDesktop(exePath, port);
+        string? desktopError = null;
+        var desktopChanged = false;
+        try { desktopChanged = RegisterDesktop(exePath, port); }
+        catch (Exception ex)
+        {
+            desktopError = ex.Message;
+            Console.WriteLine($"  Claude Desktop: couldn't write the config ({ex.Message}).");
+        }
         RegisterCode(port);
-        return desktopChanged;
+
+        var (desktop, code) = GetStatus(port);
+        Console.WriteLine($"  Check: Claude Desktop {desktop}, Claude Code {code}.");
+        if (desktop != ClaudeClientState.Connected && desktopError == null)
+            desktopError = "the reminderx entry isn't in claude_desktop_config.json after writing it";
+        return new RegisterResult(desktopChanged, desktop, code, desktop == ClaudeClientState.Connected ? null : desktopError);
     }
 
     public static void Unregister()
@@ -80,17 +99,17 @@ internal static class ClaudeIntegration
             ? new JsonObject { ["command"] = "npx", ["args"] = new JsonArray("-y", "mcp-remote", McpUrl(port)) }
             : new JsonObject { ["command"] = exePath, ["args"] = new JsonArray("--mcp-stdio") };
 
+    /// <summary>
+    /// Always writes the entry, creating %APPDATA%\Claude and the config file when they don't exist
+    /// yet (Claude Desktop installed but never configured, or installed after ReminderX).
+    /// </summary>
     private static bool RegisterDesktop(string exePath, int port)
     {
         var path = DesktopConfigPath;
-        if (!Directory.Exists(Path.GetDirectoryName(path)))
-        {
-            Console.WriteLine("  Claude Desktop: not installed, skipped.");
-            return false;
-        }
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
-        var root = LoadConfig(path);
-        if (root == null) return false;
+        var root = LoadConfig(path)
+                   ?? throw new InvalidDataException($"{path} isn't valid JSON, so it was left untouched");
 
         if (root["mcpServers"] is not JsonObject servers)
         {
@@ -127,7 +146,7 @@ internal static class ClaudeIntegration
     private static ClaudeClientState GetDesktopState(int port)
     {
         var path = DesktopConfigPath;
-        if (!Directory.Exists(Path.GetDirectoryName(path))) return ClaudeClientState.NotInstalled;
+        if (!Directory.Exists(Path.GetDirectoryName(path)) && !IsDesktopInstalled()) return ClaudeClientState.NotInstalled;
 
         JsonNode? entry;
         try { entry = File.Exists(path) ? JsonNode.Parse(File.ReadAllText(path))?["mcpServers"]?[ServerName] : null; }
@@ -162,6 +181,22 @@ internal static class ClaudeIntegration
     // ---------------- Claude Desktop restart ----------------
 
     public static bool IsDesktopRunning() => DesktopProcesses().Count > 0;
+
+    /// <summary>Store build (package folder) or the classic per-user install.</summary>
+    private static bool IsDesktopInstalled()
+    {
+        if (Environment.GetEnvironmentVariable("REMINDERX_TEST_CLAUDE_CONFIG") is { Length: > 0 }) return false;
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        try
+        {
+            return Directory.Exists(Path.Combine(local, "AnthropicClaude")) ||
+                   Directory.EnumerateDirectories(Path.Combine(local, "Packages"), "Claude_*").Any();
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     /// <summary>
     /// Closes Claude Desktop and starts it again through explorer.exe (normal user token, even when

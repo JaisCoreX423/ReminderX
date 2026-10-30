@@ -99,9 +99,15 @@ The installer registers it for you:
 - **Claude Code**: runs `claude mcp add --transport http --scope user reminderx http://127.0.0.1:8787/mcp`
   if the `claude` CLI is installed.
 
-Settings > AI access shows whether each one is connected. If you change the port, it shows the
-Claude Code command and a **Reconnect Claude** button that points both at the new port. To redo
-it by hand: `ReminderXSetup.exe --claude-register` (or `--claude-unregister`).
+Setup creates `%APPDATA%\Claude` and the config file when they don't exist yet, reads the entry back
+to confirm it's there, and warns if it couldn't write it. Automatic updates put the entry back if it
+went missing.
+
+Settings > AI access shows whether each one is connected, with a **Connect Claude** button (or
+**Connect again** when everything looks connected but Claude doesn't see ReminderX) that writes both
+entries, checks them and offers to restart Claude Desktop. If you change the port, it also shows
+the Claude Code command. From a terminal: `ReminderXSetup.exe --claude-register` (or
+`--claude-unregister`).
 
 Tools: `list_reminders`, `get_reminder`, `create_reminder`, `complete_reminder`, `snooze_reminder`,
 `delete_reminder`, `list_todos`, `create_todo`, `complete_todo`, `delete_todo`, `get_history`.
