@@ -9,7 +9,7 @@ reminder card when something is due (one-time or recurring), keeps a to-do list 
 updates itself from GitHub Releases, and exposes an MCP server so an AI client (Claude Code,
 Claude Desktop) can list and create reminders and to-dos directly.
 
-Developed by Alfred Ibarra & Claude.
+Developed by JaisCoreX & Claude.
 
 ## Install
 
@@ -68,6 +68,10 @@ ReminderXSetup.exe --uninstall --remove-data # also deletes %LocalAppData%\Remin
   Code in the background (`claude -p`, Sonnet, read-only Microsoft 365 tools) to read your email,
   calendar and Teams chats and suggest reminders. It checks your existing reminders and to-dos first
   and drops duplicates; you tick which suggestions to create. N is set in Settings (1/3/7/14 days).
+  Closing the window doesn't stop it: when it finds something, a notification lists it with
+  **Review** and **Add all**. **Check automatically** (in the review window or Settings: every
+  1/2/4 hours or daily) runs today's review between 7 AM and 8 PM and only notifies about
+  suggestions you haven't been shown before.
   Needs Claude Code installed and signed in, with the Microsoft 365 connector enabled on claude.ai.
 - **Alerts**: when a reminder is due, a chime plays, every monitor dims and a card appears on the
   screen your mouse is on, with **Complete** (Enter), **Snooze 10 min** (Esc), **Open reminder** and

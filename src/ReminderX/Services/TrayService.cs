@@ -36,6 +36,17 @@ public class TrayService : IDisposable
         };
     }
 
+    private Action? _balloonClick;
+
+    /// <summary>Fallback when a Windows toast can't be shown; clicking it runs <paramref name="onClick"/>.</summary>
+    public void ShowBalloon(string title, string text, Action onClick)
+    {
+        if (_balloonClick == null)
+            _notifyIcon.BalloonTipClicked += (_, _) => _balloonClick?.Invoke();
+        _balloonClick = onClick;
+        _notifyIcon.ShowBalloonTip(10_000, title, text, ToolTipIcon.Info);
+    }
+
     public void Dispose()
     {
         _notifyIcon.Visible = false;

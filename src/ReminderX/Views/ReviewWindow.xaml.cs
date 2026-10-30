@@ -5,48 +5,106 @@ using ReminderX.Services;
 
 namespace ReminderX.Views;
 
+/// <summary>
+/// Shows a review run owned by <see cref="ReviewCoordinator"/>: closing the window doesn't stop it,
+/// and a run that finishes after the window is closed ends up in a notification instead.
+/// </summary>
 public partial class ReviewWindow : Window
 {
-    private readonly bool _todayOnly;
-    private readonly int _daysBack;
-    private readonly CancellationTokenSource _cancel = new();
-    private readonly Stopwatch _elapsed = new();
+    public enum Mode { Today, Days, Resume }
+
+    private static ReviewWindow? _current;
+
+    private readonly Mode _mode;
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     private List<ReviewSuggestion> _suggestions = new();
-    private bool _running;
     private int _skippedAtReview;
 
-    public ReviewWindow(bool todayOnly, int daysBack)
+    /// <summary>One review window at a time; opening again brings the existing one forward.</summary>
+    public static void Open(Window? owner, Mode mode)
+    {
+        if (_current != null)
+        {
+            _current.Activate();
+            return;
+        }
+
+        _current = new ReviewWindow(mode);
+        if (owner is { IsVisible: true }) _current.Owner = owner;
+        else _current.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        _current.Show();
+        _current.Activate();
+    }
+
+    private ReviewWindow(Mode mode)
     {
         InitializeComponent();
-        _todayOnly = todayOnly;
-        _daysBack = daysBack;
+        _mode = mode;
 
-        ScopeText.Text = todayOnly
-            ? "Today's email, meetings and chats"
-            : $"Email, meetings and chats from the last {daysBack} day{(daysBack == 1 ? "" : "s")}";
+        AutoReviewCombo.ItemTemplate = (DataTemplate)FindResource("DisplayTextItemTemplate");
+        AutoReviewCombo.ItemsSource = ReviewIntervalOption.All;
+        var hours = AppHost.Reminders.GetSettings().AutoReviewHours;
+        AutoReviewCombo.SelectedItem = ReviewIntervalOption.All.FirstOrDefault(o => o.Hours == hours) ?? ReviewIntervalOption.All[0];
 
-        _clock.Tick += (_, _) => ElapsedText.Text = $"{(int)_elapsed.Elapsed.TotalMinutes}:{_elapsed.Elapsed.Seconds:00}";
+        _clock.Tick += (_, _) =>
+        {
+            var elapsed = DateTime.Now - AppHost.Reviews.StartedAt;
+            ElapsedText.Text = $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:00}";
+        };
         Loaded += async (_, _) => await RunAsync();
         Closed += (_, _) =>
         {
             _clock.Stop();
-            if (_running) _cancel.Cancel();
+            AppHost.Reviews.WindowOpen = false;
+            _current = null;
         };
+    }
+
+    private void SetScope()
+    {
+        var reviews = AppHost.Reviews;
+        ScopeText.Text = reviews.CurrentTodayOnly
+            ? "Today's email, meetings and chats"
+            : $"Email, meetings and chats from the last {reviews.CurrentDaysBack} day{Plural(reviews.CurrentDaysBack)}";
     }
 
     private async Task RunAsync()
     {
-        _running = true;
-        _elapsed.Start();
-        _clock.Start();
+        var reviews = AppHost.Reviews;
+        reviews.WindowOpen = true;
 
-        var result = await AppHost.Review.RunAsync(_todayOnly, _daysBack, _cancel.Token);
+        ReviewResult result;
+        if (_mode == Mode.Resume && !reviews.IsRunning && reviews.Pending is { } pending)
+        {
+            result = pending; // opened from the "found N things" notification
+            reviews.ClearPending();
+        }
+        else if (_mode == Mode.Resume && !reviews.IsRunning)
+        {
+            SetScope();
+            BusyPanel.Visibility = Visibility.Collapsed;
+            ShowMessage("Nothing waiting for you", "Use Today or Last days on the Reminders screen to run a review.", "Close");
+            return;
+        }
+        else
+        {
+            if (!reviews.IsRunning)
+                _ = reviews.Start(_mode == Mode.Today, AppHost.Reminders.GetSettings().ReviewDaysBack);
 
-        _running = false;
-        _clock.Stop();
-        if (!IsLoaded) return;
+            SetScope();
+            StopButton.Visibility = Visibility.Visible;
+            SecondaryButton.Content = "Run in background";
+            _clock.Start();
+            SaveBusySnapshot();
+            result = await reviews.Current!;
+            _clock.Stop();
+            if (!IsLoaded) return; // closed meanwhile: the coordinator notified instead
 
+            reviews.MarkSeen(result.Suggestions);
+        }
+
+        SetScope();
+        StopButton.Visibility = Visibility.Collapsed;
         BusyPanel.Visibility = Visibility.Collapsed;
 
         if (result.Error != null)
@@ -111,20 +169,43 @@ public partial class ReviewWindow : Window
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
+    private void Stop_Click(object sender, RoutedEventArgs e)
+    {
+        StopButton.IsEnabled = false;
+        AppHost.Reviews.Cancel();
+    }
+
+    private void AutoReviewCombo_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (AutoReviewCombo.SelectedItem is not ReviewIntervalOption option) return;
+        if (option.Hours == AppHost.Reminders.GetSettings().AutoReviewHours) return;
+
+        AppHost.Reminders.UpdateSettings(s => s.AutoReviewHours = option.Hours);
+        Logger.Log($"Review: check automatically = {option.Display}");
+    }
+
     private static string Plural(int n) => n == 1 ? "" : "s";
+
+    private void SaveBusySnapshot()
+    {
+        if (DiagSnapshot.Dir == null) return;
+        Dispatcher.BeginInvoke(() => DiagSnapshot.Save((FrameworkElement)Content, "review-busy", Background),
+            DispatcherPriority.ApplicationIdle);
+    }
 
     private void SaveDiagSnapshot()
     {
         if (DiagSnapshot.Dir == null) return;
+        var name = _mode == Mode.Resume ? "review-pending" : "review";
         Dispatcher.BeginInvoke(() =>
         {
-            DiagSnapshot.Save((FrameworkElement)Content, "review", Background);
+            DiagSnapshot.Save((FrameworkElement)Content, name, Background);
             if (CreateButton.Visibility == Visibility.Visible)
                 Create_Click(this, new RoutedEventArgs());
 
             Dispatcher.BeginInvoke(() =>
             {
-                DiagSnapshot.Save((FrameworkElement)Content, "review-done", Background);
+                DiagSnapshot.Save((FrameworkElement)Content, name + "-done", Background);
                 Logger.Log("DiagSnapshot: done, exiting test instance");
                 Environment.Exit(0);
             }, DispatcherPriority.ApplicationIdle);

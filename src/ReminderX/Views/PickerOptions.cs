@@ -95,3 +95,19 @@ public class UnitOption
         new() { Display = "month(s)", Value = RecurrenceUnit.Months },
     };
 }
+
+/// <summary>"Check automatically" choices for the Outlook/Teams review.</summary>
+public class ReviewIntervalOption
+{
+    public string Display { get; init; } = string.Empty;
+    public int Hours { get; init; }
+
+    public static readonly ReviewIntervalOption[] All =
+    {
+        new() { Display = "Off", Hours = 0 },
+        new() { Display = "Every hour", Hours = 1 },
+        new() { Display = "Every 2 hours", Hours = 2 },
+        new() { Display = "Every 4 hours", Hours = 4 },
+        new() { Display = "Once a day", Hours = 24 }
+    };
+}

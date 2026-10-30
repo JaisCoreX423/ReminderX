@@ -16,6 +16,8 @@ public static class ToastActions
     public const string Complete = "complete";
     public const string Snooze = "snooze";
     public const string Dismiss = "dismiss";
+    public const string Review = "review";
+    public const string ReviewAddAll = "reviewAddAll";
 }
 
 /// <summary>Shows a due reminder, either as the full-screen alert or as a native Windows toast.</summary>

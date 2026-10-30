@@ -92,6 +92,28 @@
                                 </StackPanel>
                             </Border>
                         </Grid>
+                        <Grid Margin="0,14,0,0">
+                            <StackPanel Margin="0,0,250,0">
+                                <TextBlock Text="Check automatically" Style="{StaticResource Text.Body}"/>
+                                <TextBlock Text="Runs today's review in the background between 7 AM and 8 PM and notifies you only about new things."
+                                           Style="{StaticResource Text.Caption}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <Border HorizontalAlignment="Right" VerticalAlignment="Center" Padding="2" CornerRadius="8"
+                                    Background="{DynamicResource Brush.SurfaceAlt}">
+                                <StackPanel x:Name="AutoReviewSegments" Orientation="Horizontal">
+                                    <RadioButton Content="Off" GroupName="AutoReview" Tag="0"
+                                                 Style="{StaticResource Segment}" Click="AutoReview_Click"/>
+                                    <RadioButton Content="1 h" GroupName="AutoReview" Tag="1"
+                                                 Style="{StaticResource Segment}" Click="AutoReview_Click"/>
+                                    <RadioButton Content="2 h" GroupName="AutoReview" Tag="2"
+                                                 Style="{StaticResource Segment}" Click="AutoReview_Click"/>
+                                    <RadioButton Content="4 h" GroupName="AutoReview" Tag="4"
+                                                 Style="{StaticResource Segment}" Click="AutoReview_Click"/>
+                                    <RadioButton Content="Daily" GroupName="AutoReview" Tag="24"
+                                                 Style="{StaticResource Segment}" Click="AutoReview_Click"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
                     </StackPanel>
                 </Border>
 

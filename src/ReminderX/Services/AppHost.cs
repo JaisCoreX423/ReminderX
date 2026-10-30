@@ -16,6 +16,7 @@ public static class AppHost
     public static McpHostService Mcp { get; private set; } = null!;
     public static UpdateService Updates { get; private set; } = null!;
     public static AiReviewService Review { get; private set; } = null!;
+    public static ReviewCoordinator Reviews { get; private set; } = null!;
 
     public static void Initialize()
     {
@@ -28,5 +29,6 @@ public static class AppHost
         Mcp = new McpHostService(Reminders);
         Updates = new UpdateService(Reminders);
         Review = new AiReviewService(Reminders);
+        Reviews = new ReviewCoordinator(Review, Reminders);
     }
 }

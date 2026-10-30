@@ -13,7 +13,14 @@ public partial class RemindersView : UserControl
     {
         InitializeComponent();
         AppHost.Reminders.Changed += () => Dispatcher.Invoke(Refresh);
+        AppHost.Reviews.StateChanged += () => Dispatcher.Invoke(UpdateReviewButtons);
         Loaded += (_, _) => Refresh();
+    }
+
+    /// <summary>While a review runs in the background, "Today" says so (clicking it shows the progress).</summary>
+    private void UpdateReviewButtons()
+    {
+        ReviewTodayText.Text = AppHost.Reviews.IsRunning ? "Reviewing…" : "Today";
     }
 
     public void Refresh()
@@ -31,12 +38,8 @@ public partial class RemindersView : UserControl
     }
 
     /// <summary>Opens "Review Outlook &amp; Teams" for today only or for the configured number of days.</summary>
-    public void OpenReview(bool todayOnly)
-    {
-        var dialog = new ReviewWindow(todayOnly, AppHost.Reminders.GetSettings().ReviewDaysBack) { Owner = Window.GetWindow(this) };
-        dialog.ShowDialog();
-        Refresh();
-    }
+    public void OpenReview(bool todayOnly) =>
+        ReviewWindow.Open(Window.GetWindow(this), todayOnly ? ReviewWindow.Mode.Today : ReviewWindow.Mode.Days);
 
     private void ReviewToday_Click(object sender, RoutedEventArgs e) => OpenReview(todayOnly: true);
 

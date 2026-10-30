@@ -31,6 +31,14 @@ public class AppSettings
     /// <summary>How far back "Review Outlook & Teams" looks.</summary>
     public int ReviewDaysBack { get; set; } = 3;
 
+    /// <summary>Run today's review in the background every N hours (0 = off, 24 = once a day).</summary>
+    public int AutoReviewHours { get; set; }
+
+    public DateTime? LastReviewAt { get; set; }
+
+    /// <summary>Normalized titles already shown to the user, so automatic runs only notify about new ones.</summary>
+    public List<string> ReviewSeenTitles { get; set; } = new();
+
     public bool McpServerEnabled { get; set; } = true;
 
     public int McpServerPort { get; set; } = 8787;

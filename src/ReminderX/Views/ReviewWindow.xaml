@@ -40,7 +40,7 @@
                        Foreground="{DynamicResource Brush.Accent}"/>
             <TextBlock Text="Claude is reading your Outlook and Teams…" Style="{StaticResource Text.Heading}"
                        HorizontalAlignment="Center" Margin="0,16,0,6"/>
-            <TextBlock Text="This usually takes 1 to 3 minutes. Nothing is created until you choose."
+            <TextBlock Text="This usually takes 1 to 3 minutes. Nothing is created until you choose. You can close this window: the review keeps running and ReminderX notifies you when it finds something."
                        Style="{StaticResource Text.Caption}" TextWrapping="Wrap" TextAlignment="Center"/>
             <TextBlock x:Name="ElapsedText" Text="0:00" Style="{StaticResource Text.Title}" FontSize="28"
                        HorizontalAlignment="Center" Margin="0,18,0,0"/>
@@ -91,7 +91,14 @@
         </StackPanel>
 
         <Grid Grid.Row="2" Background="{DynamicResource Brush.SurfaceAlt}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0">
+                <TextBlock Text="Check automatically" Style="{StaticResource Text.Caption}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox x:Name="AutoReviewCombo" Width="130" SelectionChanged="AutoReviewCombo_Changed"
+                          ToolTip="Runs today's review in the background (7 AM to 8 PM) and notifies you only about new things"/>
+            </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0">
+                <Button x:Name="StopButton" Content="Stop" Style="{StaticResource Button.Secondary}"
+                        Click="Stop_Click" Margin="0,0,10,0" Visibility="Collapsed"/>
                 <Button x:Name="SecondaryButton" Content="Cancel" Style="{StaticResource Button.Secondary}"
                         Click="Close_Click" Margin="0,0,10,0"/>
                 <Button x:Name="CreateButton" Content="Create selected" Style="{StaticResource Button.Primary}"

@@ -7,7 +7,7 @@ public static class AppInfo
     public const string RepoOwner = "JaisCoreX423";
     public const string RepoName = "ReminderX";
     public const string RepoUrl = "https://github.com/" + RepoOwner + "/" + RepoName;
-    public const string Credits = "Developed by Alfred Ibarra & Claude";
+    public const string Credits = "Developed by JaisCoreX & Claude";
 
     public static Version Version { get; } = ResolveVersion();
 

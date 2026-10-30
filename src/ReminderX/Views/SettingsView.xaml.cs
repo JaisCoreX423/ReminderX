@@ -35,6 +35,8 @@ public partial class SettingsView : UserControl
         FullScreenAlertsCheck.IsChecked = settings.AlertStyle == AlertStyle.FullScreen;
         foreach (var segment in ReviewDaysSegments.Children.OfType<RadioButton>())
             segment.IsChecked = (string)segment.Tag == settings.ReviewDaysBack.ToString();
+        foreach (var segment in AutoReviewSegments.Children.OfType<RadioButton>())
+            segment.IsChecked = (string)segment.Tag == settings.AutoReviewHours.ToString();
         McpEnabledCheck.IsChecked = settings.McpServerEnabled;
         PortBox.Text = settings.McpServerPort.ToString();
         UpdateMcpStatus();
@@ -144,6 +146,12 @@ public partial class SettingsView : UserControl
     {
         if (sender is FrameworkElement { Tag: string tag } && int.TryParse(tag, out var days))
             AppHost.Reminders.UpdateSettings(s => s.ReviewDaysBack = days);
+    }
+
+    private void AutoReview_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string tag } && int.TryParse(tag, out var hours))
+            AppHost.Reminders.UpdateSettings(s => s.AutoReviewHours = hours);
     }
 
     private void UpdateUpdaterUi()

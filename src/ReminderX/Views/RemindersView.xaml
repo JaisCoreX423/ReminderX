@@ -14,7 +14,7 @@
                         ToolTip="Ask Claude what to remember from today's Outlook and Teams">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE735;" FontFamily="Segoe Fluent Icons" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBlock Text="Today"/>
+                        <TextBlock x:Name="ReviewTodayText" Text="Today"/>
                     </StackPanel>
                 </Button>
                 <Button x:Name="ReviewDaysButton" Style="{StaticResource Button.Secondary}" Click="ReviewDays_Click" Margin="0,0,8,0"

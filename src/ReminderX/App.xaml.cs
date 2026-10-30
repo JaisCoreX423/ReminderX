@@ -104,6 +104,11 @@ public partial class App : Application
         _tray.NewReminderRequested += () => Dispatcher.Invoke(() => ShowMainWindow(openNewReminder: true));
         _tray.NewTodoRequested += () => Dispatcher.Invoke(() => ShowMainWindow(openNewTodo: true));
         _tray.ExitRequested += () => Dispatcher.Invoke(ShutdownApp);
+        AppHost.Reviews.FallbackNotify += (title, text) => _tray?.ShowBalloon(title, text, () => Dispatcher.Invoke(OpenReviewFromNotification));
+
+        // Automatic Outlook/Teams reviews (Settings > Check automatically); test instances only on request.
+        if (!AppHost.IsTestMode || Environment.GetEnvironmentVariable("REMINDERX_TEST_REVIEW_TICK_SEC") != null)
+            AppHost.Reviews.StartSchedule();
 
         // Test instances can hold a copy of real data; they must never pop real reminders on screen.
         if (!AppHost.IsTestMode || Environment.GetEnvironmentVariable("REMINDERX_TEST_SCHEDULER") == "1")
@@ -151,6 +156,17 @@ public partial class App : Application
 
         Dispatcher.Invoke(() =>
         {
+            if (action == ToastActions.Review)
+            {
+                OpenReviewFromNotification();
+                return;
+            }
+            if (action == ToastActions.ReviewAddAll)
+            {
+                AppHost.Reviews.AddAllPending();
+                return;
+            }
+
             if (string.IsNullOrEmpty(reminderId)) return;
 
             switch (action)
@@ -170,6 +186,13 @@ public partial class App : Application
                     break;
             }
         });
+    }
+
+    /// <summary>Clicking a review notification: the waiting suggestions, or the review still running.</summary>
+    private void OpenReviewFromNotification()
+    {
+        ShowMainWindow();
+        Views.ReviewWindow.Open(_mainWindow, Views.ReviewWindow.Mode.Resume);
     }
 
     public void ShowMainWindow(bool openNewReminder = false, bool openNewTodo = false, string? focusReminderId = null)
@@ -262,6 +285,17 @@ public partial class App : Application
                         }, DispatcherPriority.ApplicationIdle);
                     }, DispatcherPriority.ApplicationIdle);
                 }, DispatcherPriority.ApplicationIdle);
+            });
+        }
+        else if (Has("--test-review-background"))
+        {
+            // A review with no window open, then the user clicking the "found N things" notification.
+            Dispatcher.BeginInvoke(async () =>
+            {
+                ShowMainWindow();
+                await AppHost.Reviews.Start(todayOnly: true, daysBack: 1);
+                Logger.Log($"DIAG: background review done, pending = {AppHost.Reviews.Pending?.Suggestions.Count}");
+                OpenReviewFromNotification();
             });
         }
         else if (Has("--test-review"))
