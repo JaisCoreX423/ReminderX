@@ -62,35 +62,60 @@ public class ReviewCoordinator
         var now = DateTime.Now;
         var anyHour = Environment.GetEnvironmentVariable("REMINDERX_TEST_REVIEW_ANY_HOUR") == "1";
         if (!anyHour && (now.Hour < AutoStartHour || now.Hour >= AutoEndHour)) return;
-        if (settings.LastReviewAt is { } last && now - last < TimeSpan.FromHours(settings.AutoReviewHours)) return;
 
-        // Hourly/2h/4h runs look at today; the daily one also covers yesterday evening.
+        var interval = TimeSpan.FromHours(settings.AutoReviewHours);
+        if (settings.LastReviewAt is { } last && now - last < interval) return;
+        if (_lastAttemptAt is { } attempt && now - attempt < interval) return; // failed runs don't retry every minute
+
+        // Only what's new since the previous review, with an overlap so nothing falls between two runs.
+        // First run ever: today (daily: since yesterday). PC off for days: at most 3 days back.
         var daily = settings.AutoReviewHours >= 24;
-        Logger.Log($"Review: automatic run (every {settings.AutoReviewHours} h)");
-        _ = Start(todayOnly: !daily, daysBack: 1, automatic: true);
+        var since = settings.LastReviewAt is { } previous
+            ? previous - SinceOverlap
+            : (daily ? now.Date.AddDays(-1) : now.Date);
+        if (since < now.AddDays(-3)) since = now.AddDays(-3);
+
+        Logger.Log($"Review: automatic run (every {settings.AutoReviewHours} h), since {since:yyyy-MM-dd HH:mm}");
+        _ = Start(todayOnly: !daily, daysBack: 1, automatic: true, since: since);
     }
 
+    private static readonly TimeSpan SinceOverlap = TimeSpan.FromMinutes(15);
+
+    private DateTime? _lastAttemptAt;
+
+    /// <summary>Set for automatic runs: they only look at activity after this moment.</summary>
+    public DateTime? CurrentSince { get; private set; }
+
     /// <summary>Starts a review, or returns the one already running.</summary>
-    public Task<ReviewResult> Start(bool todayOnly, int daysBack, bool automatic = false)
+    public Task<ReviewResult> Start(bool todayOnly, int daysBack, bool automatic = false, DateTime? since = null)
     {
         if (IsRunning) return Current!;
 
         CurrentTodayOnly = todayOnly;
         CurrentDaysBack = daysBack;
         CurrentIsAutomatic = automatic;
+        CurrentSince = since;
         StartedAt = DateTime.Now;
         _cancel = new CancellationTokenSource();
-        Current = RunAsync(todayOnly, daysBack, automatic, _cancel.Token);
+        Current = RunAsync(todayOnly, daysBack, automatic, since, _cancel.Token);
         StateChanged?.Invoke();
         return Current;
     }
 
     public void Cancel() => _cancel?.Cancel();
 
-    private async Task<ReviewResult> RunAsync(bool todayOnly, int daysBack, bool automatic, CancellationToken cancel)
+    private async Task<ReviewResult> RunAsync(bool todayOnly, int daysBack, bool automatic, DateTime? since, CancellationToken cancel)
     {
-        var result = await _review.RunAsync(todayOnly, daysBack, cancel);
-        _reminders.UpdateSettings(s => s.LastReviewAt = DateTime.Now);
+        var startedAt = DateTime.Now;
+        _lastAttemptAt = startedAt;
+        var result = await _review.RunAsync(todayOnly, daysBack, cancel, since);
+
+        // The next automatic run starts from when this one began (messages that arrived while it ran
+        // are covered next time). A failed or cancelled run doesn't move it, so nothing is skipped.
+        if (result.Error == null)
+            _reminders.UpdateSettings(s => s.LastReviewAt = startedAt);
+        else
+            Logger.Log($"Review failed{(automatic ? " (automatic, will retry next interval)" : "")}: {result.Error.Split('\n')[0]}");
 
         if (automatic)
         {

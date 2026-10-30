@@ -54,16 +54,17 @@ public class AiReviewService
         _reminders = reminders;
     }
 
-    public async Task<ReviewResult> RunAsync(bool todayOnly, int daysBack, CancellationToken cancel)
+    /// <param name="since">Automatic runs: only activity after this moment (the previous run, minus an overlap).</param>
+    public async Task<ReviewResult> RunAsync(bool todayOnly, int daysBack, CancellationToken cancel, DateTime? since = null)
     {
         var result = new ReviewResult();
         var now = DateTime.Now;
-        var from = todayOnly ? now.Date : now.Date.AddDays(-Math.Clamp(daysBack, 1, 30));
+        var from = since ?? (todayOnly ? now.Date : now.Date.AddDays(-Math.Clamp(daysBack, 1, 30)));
 
         string output;
         try
         {
-            output = await RunClaudeAsync(BuildPrompt(now, from, todayOnly), cancel);
+            output = await RunClaudeAsync(BuildPrompt(now, from, todayOnly, since != null), cancel);
         }
         catch (OperationCanceledException)
         {
@@ -124,7 +125,7 @@ public class AiReviewService
             result.Error = $"Couldn't read Claude's answer: {ex.Message}\n\n{output.Trim()}";
         }
 
-        Logger.Log($"Review ({(todayOnly ? "today" : $"{daysBack} days")}): {result.Suggestions.Count} suggestions, " +
+        Logger.Log($"Review ({(since != null ? $"since {since:HH:mm}" : todayOnly ? "today" : $"{daysBack} days")}): {result.Suggestions.Count} suggestions, " +
                    $"{result.SkippedAsDuplicates} duplicates skipped{(result.Error != null ? ", error: " + result.Error.Split('\n')[0] : "")}");
         return result;
     }
@@ -153,13 +154,17 @@ public class AiReviewService
         return (created, skipped);
     }
 
-    private static string BuildPrompt(DateTime now, DateTime from, bool todayOnly)
+    private static string BuildPrompt(DateTime now, DateTime from, bool todayOnly, bool sinceLastRun)
     {
         var offset = TimeZoneInfo.Local.GetUtcOffset(now);
         var zone = $"{TimeZoneInfo.Local.StandardName} (UTC{(offset < TimeSpan.Zero ? "-" : "+")}{offset:hh\\:mm})";
-        var window = todayOnly
-            ? $"today ({now:dddd, MMMM d, yyyy}) from midnight until now"
-            : $"from {from:dddd, MMMM d, yyyy} until now ({now:dddd, MMMM d, yyyy h:mm tt})";
+        var window = sinceLastRun
+            ? $"since the last review, that is only items sent, received or updated from {from:dddd, MMMM d, yyyy h:mm tt} " +
+              $"until now ({now:h:mm tt}); use that date and time as the search filter and skip older messages"
+            : todayOnly
+                ? $"today ({now:dddd, MMMM d, yyyy}) from midnight until now"
+                : $"from {from:dddd, MMMM d, yyyy} until now ({now:dddd, MMMM d, yyyy h:mm tt})";
+        Logger.Log($"Review window: {window}");
 
         return $$"""
             You are helping the user keep his ReminderX reminders complete. Current local time: {{now:yyyy-MM-dd HH:mm}}, time zone {{zone}}.

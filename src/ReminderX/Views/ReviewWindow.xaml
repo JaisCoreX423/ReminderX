@@ -94,7 +94,7 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0">
                 <TextBlock Text="Check automatically" Style="{StaticResource Text.Caption}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <ComboBox x:Name="AutoReviewCombo" Width="130" SelectionChanged="AutoReviewCombo_Changed"
-                          ToolTip="Runs today's review in the background (7 AM to 8 PM) and notifies you only about new things"/>
+                          ToolTip="Checks what's new since the last review in the background (7 AM to 8 PM) and notifies you about new things"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0">
                 <Button x:Name="StopButton" Content="Stop" Style="{StaticResource Button.Secondary}"

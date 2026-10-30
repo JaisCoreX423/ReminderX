@@ -70,7 +70,8 @@ ReminderXSetup.exe --uninstall --remove-data # also deletes %LocalAppData%\Remin
   and drops duplicates; you tick which suggestions to create. N is set in Settings (1/3/7/14 days).
   Closing the window doesn't stop it: when it finds something, a notification lists it with
   **Review** and **Add all**. **Check automatically** (in the review window or Settings: every
-  1/2/4 hours or daily) runs today's review between 7 AM and 8 PM and only notifies about
+  1/2/4 hours or daily) reviews only what came in since the previous review (15 min overlap),
+  between 7 AM and 8 PM, and only notifies about
   suggestions you haven't been shown before.
   Needs Claude Code installed and signed in, with the Microsoft 365 connector enabled on claude.ai.
 - **Alerts**: when a reminder is due, a chime plays, every monitor dims and a card appears on the

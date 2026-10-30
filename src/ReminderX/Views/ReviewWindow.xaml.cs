@@ -63,9 +63,11 @@ public partial class ReviewWindow : Window
     private void SetScope()
     {
         var reviews = AppHost.Reviews;
-        ScopeText.Text = reviews.CurrentTodayOnly
-            ? "Today's email, meetings and chats"
-            : $"Email, meetings and chats from the last {reviews.CurrentDaysBack} day{Plural(reviews.CurrentDaysBack)}";
+        ScopeText.Text = reviews.CurrentSince is { } since
+            ? $"New email, meetings and chats since {(since.Date == DateTime.Today ? since.ToString("h:mm tt") : since.ToString("MMM d, h:mm tt"))} (automatic check)"
+            : reviews.CurrentTodayOnly
+                ? "Today's email, meetings and chats"
+                : $"Email, meetings and chats from the last {reviews.CurrentDaysBack} day{Plural(reviews.CurrentDaysBack)}";
     }
 
     private async Task RunAsync()
