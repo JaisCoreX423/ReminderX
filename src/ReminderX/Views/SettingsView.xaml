@@ -119,6 +119,42 @@
 
                 <Border Style="{StaticResource Card}" Margin="0,0,0,14">
                     <StackPanel>
+                        <TextBlock Text="Phone" Style="{StaticResource Text.Heading}" Margin="0,0,0,4"/>
+                        <TextBlock Text="Link the ReminderX Android app to keep reminders and to-dos in sync both ways. Everything travels end-to-end encrypted."
+                                   Style="{StaticResource Text.Caption}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                        <Grid>
+                            <StackPanel Margin="0,0,150,0">
+                                <TextBlock x:Name="SyncTitleText" Text="Not linked" Style="{StaticResource Text.Body}"/>
+                                <TextBlock x:Name="SyncStatusText" Style="{StaticResource Text.Caption}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <Button x:Name="LinkPhoneButton" Content="Link a phone" Style="{StaticResource Button.Primary}"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center" Click="LinkPhone_Click"/>
+                        </Grid>
+                        <ItemsControl x:Name="DevicesList" Margin="0,10,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,6,0,0">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource Text.Body}">
+                                                <Run Text="{Binding Name, Mode=OneWay}"/>
+                                                <Run Text="{Binding Detail, Mode=OneWay}" Foreground="{DynamicResource Brush.TextSecondary}"/>
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding LastSeen}" Style="{StaticResource Text.Caption}"/>
+                                        </StackPanel>
+                                        <Button Content="Unlink" Style="{StaticResource Button.Secondary}" HorizontalAlignment="Right"
+                                                VerticalAlignment="Center" Click="UnlinkDevice_Click" Tag="{Binding Id}"
+                                                Visibility="{Binding IsPhone, Converter={StaticResource BoolToVis}}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button x:Name="StopSyncButton" Content="Stop syncing and erase the cloud copy" Style="{StaticResource Button.Link}"
+                                HorizontalAlignment="Left" Margin="0,10,0,0" Click="StopSync_Click" Visibility="Collapsed"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+                    <StackPanel>
                         <TextBlock Text="AI access (MCP server)" Style="{StaticResource Text.Heading}" Margin="0,0,0,4"/>
                         <TextBlock Text="Lets an MCP-compatible AI client (Claude Code, Claude Desktop) list and create reminders and to-dos while ReminderX is running. Local machine only."
                                    Style="{StaticResource Text.Caption}" TextWrapping="Wrap" Margin="0,0,0,10"/>

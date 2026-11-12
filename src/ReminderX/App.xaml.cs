@@ -110,6 +110,10 @@ public partial class App : Application
         if (!AppHost.IsTestMode || Environment.GetEnvironmentVariable("REMINDERX_TEST_REVIEW_TICK_SEC") != null)
             AppHost.Reviews.StartSchedule();
 
+        // Phone sync (Settings > Phone). Test instances only against a server they name.
+        if (!AppHost.IsTestMode || Environment.GetEnvironmentVariable("REMINDERX_SYNC_URL") != null)
+            AppHost.Sync.Start();
+
         // Test instances can hold a copy of real data; they must never pop real reminders on screen.
         if (!AppHost.IsTestMode || Environment.GetEnvironmentVariable("REMINDERX_TEST_SCHEDULER") == "1")
             AppHost.Scheduler.Start();
@@ -285,6 +289,14 @@ public partial class App : Application
                         }, DispatcherPriority.ApplicationIdle);
                     }, DispatcherPriority.ApplicationIdle);
                 }, DispatcherPriority.ApplicationIdle);
+            });
+        }
+        else if (Has("--test-pair"))
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                ShowMainWindow();
+                new Views.PairPhoneWindow { Owner = _mainWindow }.Show();
             });
         }
         else if (Has("--test-review-background"))

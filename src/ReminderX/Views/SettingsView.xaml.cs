@@ -17,6 +17,89 @@ public partial class SettingsView : UserControl
         InitializeComponent();
         Loaded += (_, _) => Refresh();
         AppHost.Updates.StateChanged += () => Dispatcher.Invoke(UpdateUpdaterUi);
+        AppHost.Sync.StateChanged += () => Dispatcher.BeginInvoke(UpdateSyncStatus);
+    }
+
+    // ---------------- Phone sync ----------------
+
+    private sealed record DeviceRow(string Id, string Name, string Detail, string LastSeen, bool IsPhone);
+
+    private void UpdateSyncStatus()
+    {
+        var sync = AppHost.Sync;
+        LinkPhoneButton.Content = sync.IsLinked ? "Link another phone" : "Link a phone";
+        LinkPhoneButton.Style = (Style)FindResource(sync.IsLinked ? "Button.Secondary" : "Button.Primary");
+        StopSyncButton.Visibility = sync.IsLinked ? Visibility.Visible : Visibility.Collapsed;
+
+        SyncTitleText.Text = sync.IsLinked ? "Syncing" : "Not linked";
+        SyncStatusText.Text = sync.LastError != null
+            ? $"Last attempt failed: {sync.LastError}"
+            : sync.LastSyncAt is { } at ? $"Last synced {at:h:mm:ss tt}" : sync.IsLinked ? "Waiting for the first sync…" : "";
+    }
+
+    private async Task RefreshDevicesAsync()
+    {
+        UpdateSyncStatus();
+        if (!AppHost.Sync.IsLinked)
+        {
+            DevicesList.ItemsSource = null;
+            return;
+        }
+
+        try
+        {
+            var devices = await AppHost.Sync.ListDevicesAsync();
+            DevicesList.ItemsSource = devices
+                .OrderBy(d => d.Self ? 0 : 1)
+                .Select(d => new DeviceRow(
+                    d.Id,
+                    d.Name,
+                    d.Self ? "  ·  this PC" : $"  ·  {d.Platform}",
+                    $"Last seen {DateTimeOffset.FromUnixTimeMilliseconds(d.LastSeenAt).LocalDateTime:MMM d, h:mm tt}",
+                    !d.Self))
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.Log($"Sync: couldn't list devices: {ex.Message}");
+        }
+    }
+
+    private async void LinkPhone_Click(object sender, RoutedEventArgs e)
+    {
+        new PairPhoneWindow { Owner = Window.GetWindow(this) }.ShowDialog();
+        await RefreshDevicesAsync();
+    }
+
+    private async void UnlinkDevice_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string id }) return;
+        if (MessageBox.Show(Window.GetWindow(this), "Unlink this phone? It stops syncing right away.", "ReminderX",
+                MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+
+        try { await AppHost.Sync.UnlinkDeviceAsync(id); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(Window.GetWindow(this), $"Couldn't unlink it: {ex.Message}", "ReminderX",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        await RefreshDevicesAsync();
+    }
+
+    private async void StopSync_Click(object sender, RoutedEventArgs e)
+    {
+        if (MessageBox.Show(Window.GetWindow(this),
+                "Stop syncing? Every linked phone is unlinked and the encrypted copy in the cloud is erased. " +
+                "Reminders on this PC stay as they are.",
+                "ReminderX", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+
+        try { await AppHost.Sync.StopSyncingAsync(); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(Window.GetWindow(this), $"Couldn't stop syncing: {ex.Message}", "ReminderX",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        await RefreshDevicesAsync();
     }
 
     public void Refresh()
@@ -40,6 +123,7 @@ public partial class SettingsView : UserControl
         McpEnabledCheck.IsChecked = settings.McpServerEnabled;
         PortBox.Text = settings.McpServerPort.ToString();
         UpdateMcpStatus();
+        _ = RefreshDevicesAsync();
     }
 
     private void UpdateMcpStatus()

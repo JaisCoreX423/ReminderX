@@ -261,6 +261,73 @@ public class ReminderService
     public void ClearHistory() =>
         _store.Mutate(d => d.History.Clear());
 
+    // ---------- Sync (Services/Sync/SyncService.cs) ----------
+
+    /// <summary>Every reminder and to-do as its sync JSON, taken under the store lock.</summary>
+    public (List<(string Id, string Json)> Reminders, List<(string Id, string Json)> Todos) GetSyncSnapshot() =>
+        _store.Read(d => (
+            d.Reminders.Select(r => (r.Id, Sync.SyncJson.Serialize(Sync.ReminderRecord.From(r)))).ToList(),
+            d.Todos.Select(t => (t.Id, Sync.SyncJson.Serialize(Sync.TodoRecord.From(t)))).ToList()));
+
+    /// <summary>
+    /// Applies a reminder that changed on another device (null = deleted there). Returns the
+    /// resulting local sync JSON, or null when it's gone. Callers raise Changed once per batch.
+    /// </summary>
+    public string? ApplySyncedReminder(string id, Sync.ReminderRecord? record)
+    {
+        if (record == null)
+        {
+            var title = GetReminder(id)?.Title;
+            if (title == null) return null;
+            _store.Mutate(d => d.Reminders.RemoveAll(r => r.Id == id));
+            _store.DeleteAttachmentFolder(id);
+            AddHistory(id, title, HistoryAction.Deleted, "on another device");
+            return null;
+        }
+
+        string json = "";
+        var created = false;
+        _store.Mutate(d =>
+        {
+            var reminder = d.Reminders.FirstOrDefault(r => r.Id == id);
+            if (reminder == null)
+            {
+                reminder = new Reminder { Id = id };
+                d.Reminders.Add(reminder);
+                created = true;
+            }
+            record.ApplyTo(reminder);
+            json = Sync.SyncJson.Serialize(Sync.ReminderRecord.From(reminder));
+        });
+        AddHistory(id, record.Title, created ? HistoryAction.Created : HistoryAction.Edited, "on another device");
+        return json;
+    }
+
+    public string? ApplySyncedTodo(string id, Sync.TodoRecord? record)
+    {
+        if (record == null)
+        {
+            _store.Mutate(d => d.Todos.RemoveAll(t => t.Id == id));
+            return null;
+        }
+
+        string json = "";
+        _store.Mutate(d =>
+        {
+            var todo = d.Todos.FirstOrDefault(t => t.Id == id);
+            if (todo == null)
+            {
+                todo = new TodoItem { Id = id };
+                d.Todos.Add(todo);
+            }
+            record.ApplyTo(todo);
+            json = Sync.SyncJson.Serialize(Sync.TodoRecord.From(todo));
+        });
+        return json;
+    }
+
+    public void NotifySyncApplied() => RaiseChanged();
+
     private void AddHistory(string reminderId, string title, HistoryAction action, string note)
     {
         _store.Mutate(d =>

@@ -17,6 +17,7 @@ public static class AppHost
     public static UpdateService Updates { get; private set; } = null!;
     public static AiReviewService Review { get; private set; } = null!;
     public static ReviewCoordinator Reviews { get; private set; } = null!;
+    public static Sync.SyncService Sync { get; private set; } = null!;
 
     public static void Initialize()
     {
@@ -30,5 +31,6 @@ public static class AppHost
         Updates = new UpdateService(Reminders);
         Review = new AiReviewService(Reminders);
         Reviews = new ReviewCoordinator(Review, Reminders);
+        Sync = new Sync.SyncService(Reminders);
     }
 }
