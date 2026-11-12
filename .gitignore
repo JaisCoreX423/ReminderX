@@ -5,3 +5,6 @@ dist/
 src/ReminderX.Setup/payload.zip
 *.user
 .vs/
+
+# Local Netlify folder
+.netlify

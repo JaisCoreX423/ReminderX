@@ -1,0 +1,13 @@
+{
+  "name": "reminderx-sync",
+  "private": true,
+  "description": "ReminderX sync service (Netlify Functions + Firestore). Relays encrypted reminders between the desktop app and paired phones.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "dependencies": {
+    "firebase-admin": "^13.5.0"
+  }
+}
