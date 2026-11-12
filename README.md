@@ -119,6 +119,23 @@ Tools: `list_reminders`, `get_reminder`, `create_reminder`, `complete_reminder`,
 `create_reminder` and `create_todo` skip an item when an active one with the same title exists
 (pass `skipIfDuplicate: false` to force it).
 
+## Android app and sync
+
+`ReminderX.apk` (same release page) is ReminderX for Android: reminders (one-time, recurring,
+timer), to-dos and history, with exact alarms, a full-screen alert over the lock screen and
+Complete / Snooze 10 min / Dismiss from the notification. It checks this repo's releases twice a
+day and installs updates after you confirm (allow "install unknown apps" for ReminderX once).
+
+**Linking:** on the PC open Settings > Phone > **Link a phone** and scan the QR with the app. The
+code works once and expires in 10 minutes. After that, reminders and to-dos sync both ways every
+30 seconds on the PC and when the app opens (plus every ~15 minutes in the background); if both
+sides change the same item, the latest change wins. Attachments, the Outlook/Teams review and the
+MCP server stay on the PC.
+
+**Privacy:** records are encrypted on each device with AES-256-GCM; the key is created on the PC
+and only travels inside the QR, so the sync service (`sync/`, Netlify Functions + Firestore) only
+stores ciphertext. Settings > Phone can unlink a phone or erase the cloud copy entirely.
+
 ## Project layout
 
 ```
@@ -129,8 +146,11 @@ src/ReminderX/          The app (WPF, .NET 10)
   Mcp/                  MCP tool definitions
   Views/                Reminders / To-Do / History / Settings, editors, alert overlay
   Themes/               light/dark color tokens and control styles
+  Services/Sync/        phone sync: encryption, change detection, sync client
 src/ReminderX.Setup/    The installer: embeds the published app and installs/uninstalls it
 build-installer.ps1     Builds dist\ReminderXSetup.exe
+android/                The Android app (Kotlin, Jetpack Compose); built by GitHub Actions
+sync/                   The sync service (Netlify Functions + Firestore), tests and a local dev server
 ```
 
 Data lives at `%LocalAppData%\ReminderX\data.json` (plus an `Attachments\<reminderId>\` folder per
