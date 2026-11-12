@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status bar icon: the app's X with a checkmark, as a white silhouette (Android tints it). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M5.3,3.9L12,10.6L18.7,3.9L20.1,5.3L13.4,12L14.6,13.2L13.2,14.6L12,13.4L5.3,20.1L3.9,18.7L10.6,12L3.9,5.3Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M14.2,17.2L16.4,19.4L21.3,14.5L22.7,15.9L16.4,22.2L12.8,18.6Z" />
+</vector>
