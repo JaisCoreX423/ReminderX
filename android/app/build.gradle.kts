@@ -21,7 +21,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionName = appVersion
-        versionCode = versionParts[0] * 10000 + versionParts[1] * 100 + versionParts[2]
+        versionCode = maxOf(1, versionParts[0] * 10000 + versionParts[1] * 100 + versionParts[2])
     }
 
     signingConfigs {
