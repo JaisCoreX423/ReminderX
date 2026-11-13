@@ -7,10 +7,13 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Settings" Style="{StaticResource Text.Title}" Margin="0,0,0,16"/>
+        <!-- Title and cards share one column that stays centered when the window is wide or maximized. -->
+        <TextBlock x:Name="TitleText" Grid.Row="0" Text="Settings" Style="{StaticResource Text.Title}" Margin="0,0,0,16"
+                   MaxWidth="640" HorizontalAlignment="Stretch"/>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel x:Name="SettingsStack" MaxWidth="560" HorizontalAlignment="Left">
+        <ScrollViewer x:Name="SettingsScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                      ScrollChanged="SettingsScroll_ScrollChanged">
+            <StackPanel x:Name="SettingsStack" MaxWidth="640" HorizontalAlignment="Stretch">
 
                 <Border Style="{StaticResource Card}" Margin="0,0,0,14">
                     <StackPanel>

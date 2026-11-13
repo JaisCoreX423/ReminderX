@@ -12,6 +12,14 @@ namespace ReminderX.Views;
 
 public partial class SettingsView : UserControl
 {
+    /// <summary>Keeps the centered title over the centered cards: the scrollbar narrows the card area only.</summary>
+    private void SettingsScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        var scrollbar = Math.Max(0, SettingsScroll.ActualWidth - SettingsScroll.ViewportWidth);
+        if (Math.Abs(TitleText.Margin.Right - scrollbar) > 0.5)
+            TitleText.Margin = new Thickness(0, 0, scrollbar, 16);
+    }
+
     public SettingsView()
     {
         InitializeComponent();
