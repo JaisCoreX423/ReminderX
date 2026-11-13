@@ -64,7 +64,7 @@ public partial class ReviewWindow : Window
     {
         var reviews = AppHost.Reviews;
         ScopeText.Text = reviews.CurrentSince is { } since
-            ? $"New email, meetings and chats since {(since.Date == DateTime.Today ? since.ToString("h:mm tt") : since.ToString("MMM d, h:mm tt"))} (automatic check)"
+            ? $"New email, meetings and chats since {(since.Date == DateTime.Today ? since.ToString("h:mm tt", System.Globalization.CultureInfo.InvariantCulture) : since.ToString("MMM d, h:mm tt", System.Globalization.CultureInfo.InvariantCulture))} (automatic check)"
             : reviews.CurrentTodayOnly
                 ? "Today's email, meetings and chats"
                 : $"Email, meetings and chats from the last {reviews.CurrentDaysBack} day{Plural(reviews.CurrentDaysBack)}";

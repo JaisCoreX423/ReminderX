@@ -61,11 +61,14 @@ public class FriendlyDateConverter : IValueConverter
     {
         if (value is not DateTime dt) return string.Empty;
 
+        // Fixed English format ("Nov 16, 9:00 AM"), same as the Android app, whatever the Windows region.
+        var en = CultureInfo.InvariantCulture;
         var today = DateTime.Today;
-        if (dt.Date == today) return $"Today, {dt:h:mm tt}";
-        if (dt.Date == today.AddDays(1)) return $"Tomorrow, {dt:h:mm tt}";
-        if (dt.Date == today.AddDays(-1)) return $"Yesterday, {dt:h:mm tt}";
-        return dt.Year == today.Year ? $"{dt:MMM d, h:mm tt}" : $"{dt:MMM d yyyy, h:mm tt}";
+        var time = dt.ToString("h:mm tt", en);
+        if (dt.Date == today) return $"Today, {time}";
+        if (dt.Date == today.AddDays(1)) return $"Tomorrow, {time}";
+        if (dt.Date == today.AddDays(-1)) return $"Yesterday, {time}";
+        return dt.ToString(dt.Year == today.Year ? "MMM d, " : "MMM d yyyy, ", en) + time;
     }
 
     public object ConvertBack(object? value, Type targetType, object parameter, CultureInfo culture)

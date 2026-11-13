@@ -41,6 +41,17 @@ public static class ReminderMcpTools
         return r == null ? ToJson(new { error = "not_found" }) : ToJson(ToDetail(r));
     }
 
+    /// <summary>ISO-8601 first (and "3:00 PM" style English), then the Windows regional format.</summary>
+    private static bool TryParseDue(string? text, out DateTime due)
+    {
+        due = default;
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        return DateTime.TryParse(text, System.Globalization.CultureInfo.InvariantCulture,
+                   System.Globalization.DateTimeStyles.None, out due)
+            || DateTime.TryParse(text, System.Globalization.CultureInfo.CurrentCulture,
+                   System.Globalization.DateTimeStyles.None, out due);
+    }
+
     [McpServerTool, Description(
         "Create a new reminder. dueAt must be an ISO-8601 local date/time, e.g. 2026-11-02T09:00:00. " +
         "For a recurring reminder, also set recurrenceUnit (Seconds|Minutes|Hours|Days|Weeks|Months) and recurrenceInterval " +
@@ -60,7 +71,7 @@ public static class ReminderMcpTools
         if (skipIfDuplicate && service.FindActiveDuplicateTitle(title) is { } existing)
             return ToJson(new { skipped = "duplicate", existingTitle = existing });
 
-        if (!DateTime.TryParse(dueAt, null, System.Globalization.DateTimeStyles.None, out var due))
+        if (!TryParseDue(dueAt, out var due))
             return ToJson(new { error = "invalid_dueAt", detail = "Could not parse dueAt as a date/time." });
 
         RecurrenceRule? rule = null;
@@ -138,7 +149,7 @@ public static class ReminderMcpTools
         DateTime? due = null;
         if (!string.IsNullOrWhiteSpace(dueAt))
         {
-            if (!DateTime.TryParse(dueAt, null, System.Globalization.DateTimeStyles.None, out var parsed))
+            if (!TryParseDue(dueAt, out var parsed))
                 return ToJson(new { error = "invalid_dueAt" });
             due = parsed;
         }

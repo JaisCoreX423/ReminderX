@@ -108,7 +108,7 @@ public partial class ReminderEditorWindow : Window
 
     private void RunDiagSnapshots()
     {
-        foreach (var input in new[] { "9:37 AM", "9:37am", "9:37 p", "21:37", "9 am", "2137", "7:05 PM", "nonsense" })
+        foreach (var input in new[] { "9:37 AM", "9:37am", "9:37 p", "9:00 a. m.", "9:00 p. m.", "2:30 p.m.", "21:37", "9 am", "2137", "7:05 PM", "nonsense" })
             Logger.Log($"DIAG time parse \"{input}\" -> " +
                        (TimeOption.TryParse(input, out var t) ? TimeOption.Format(t) : "rejected"));
 

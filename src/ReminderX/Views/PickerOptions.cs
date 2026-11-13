@@ -20,12 +20,13 @@ public class TimeOption
         for (var minutes = 0; minutes < 24 * 60; minutes += 15)
         {
             var t = TimeSpan.FromMinutes(minutes);
-            list.Add(new TimeOption { Display = DateTime.Today.Add(t).ToString("h:mm tt"), Value = t });
+            list.Add(new TimeOption { Display = Format(t), Value = t });
         }
         return list.ToArray();
     }
 
-    public static string Format(TimeSpan t) => DateTime.Today.Add(t).ToString("h:mm tt");
+    public static string Format(TimeSpan t) =>
+        DateTime.Today.Add(t).ToString("h:mm tt", System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>Makes a time ComboBox accept any typed time while keeping the 15-minute presets.</summary>
     public static void ConfigureEditable(System.Windows.Controls.ComboBox combo, TimeOption[] options,
@@ -37,6 +38,15 @@ public class TimeOption
         combo.IsEditable = true;
         combo.IsTextSearchEnabled = false; // autocomplete would fight free typing ("9:3" → "9:30 AM")
         System.Windows.Controls.TextSearch.SetTextPath(combo, nameof(Display));
+        // Whatever was typed ("9 p. m.", "21:37", "9:37pm") is rewritten as "9:37 PM" on leaving the box.
+        combo.LostKeyboardFocus += (_, _) =>
+        {
+            if (!combo.IsKeyboardFocusWithin && TryParse(combo.Text, out var typed))
+            {
+                var formatted = Format(typed);
+                if (combo.Text != formatted) SetTime(combo, typed);
+            }
+        };
     }
 
     public static void SetTime(System.Windows.Controls.ComboBox combo, TimeSpan time)
@@ -46,25 +56,34 @@ public class TimeOption
         combo.Text = Format(time);
     }
 
-    /// <summary>Accepts "9:37 AM", "9:37am", "9:37 p", "21:37", "9 am", "2137".</summary>
+    /// <summary>
+    /// Accepts "9:37 AM", "9:37am", "9:37 p", "9:37 a. m.", "9:37 p.m.", "21:37", "9 am", "2137", "9.37 pm".
+    /// Always parsed with AM/PM, never the Windows regional designators.
+    /// </summary>
     public static bool TryParse(string? text, out TimeSpan time)
     {
         time = default;
         if (string.IsNullOrWhiteSpace(text)) return false;
-        var s = text.Trim().ToLowerInvariant().Replace(".", "");
-        if (s.EndsWith('a') || s.EndsWith('p')) s += "m";
+        var s = text.Trim().ToLowerInvariant();
 
-        string[] formats = { "h:mm tt", "h:mmtt", "hh:mm tt", "H:mm", "HH:mm", "h tt", "htt", "Hmm", "HHmm" };
-        foreach (var culture in new[] { System.Globalization.CultureInfo.InvariantCulture, System.Globalization.CultureInfo.CurrentCulture })
+        // "a. m." / "p.m." / "a m" / "pm" / "p" at the end → " AM" / " PM".
+        string? designator = null;
+        var suffix = System.Text.RegularExpressions.Regex.Match(s, @"\s*([ap])\s*\.?\s*(m\s*\.?)?\s*$");
+        if (suffix.Success)
         {
-            if (DateTime.TryParseExact(s, formats, culture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out var exact) ||
-                DateTime.TryParse(s, culture, System.Globalization.DateTimeStyles.NoCurrentDateDefault, out exact))
-            {
-                time = exact.TimeOfDay;
-                return true;
-            }
+            designator = suffix.Groups[1].Value == "a" ? "AM" : "PM";
+            s = s[..suffix.Index].Trim();
         }
-        return false;
+        s = s.Replace('.', ':'); // "9.37" → "9:37"
+        if (designator != null) s += " " + designator;
+
+        string[] formats = { "h:mm tt", "hh:mm tt", "H:mm", "HH:mm", "h tt", "hh tt", "Hmm", "HHmm", "hmm tt", "hhmm tt",
+            "h:mm:ss tt", "H:mm:ss" };
+        var invariant = System.Globalization.CultureInfo.InvariantCulture;
+        if (!DateTime.TryParseExact(s, formats, invariant, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out var parsed))
+            return false;
+        time = parsed.TimeOfDay;
+        return true;
     }
 
     public static TimeSpan RoundToNearest(TimeOption[] options, TimeSpan t)

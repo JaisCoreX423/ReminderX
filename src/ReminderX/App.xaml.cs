@@ -38,6 +38,7 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        UseAmPmDesignators();
         base.OnStartup(e);
 
         // Claude Desktop launches this mode as a command-based MCP server; it's only a relay to the
@@ -342,6 +343,25 @@ public partial class App : Application
                 }, isPreview: true);
             });
         }
+    }
+
+    /// <summary>
+    /// Keeps the Windows regional settings (date order, etc.) but always writes times as "9:00 AM"/"9:00 PM".
+    /// Spanish (and other) cultures use "a. m."/"p. m.", which looked inconsistent and couldn't be typed back.
+    /// </summary>
+    private static void UseAmPmDesignators()
+    {
+        if (Environment.GetEnvironmentVariable("REMINDERX_TEST_CULTURE") is { Length: > 0 } testCulture)
+            System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo(testCulture);
+        var culture = (System.Globalization.CultureInfo)System.Globalization.CultureInfo.CurrentCulture.Clone();
+        var format = culture.DateTimeFormat;
+        format.AMDesignator = "AM";
+        format.PMDesignator = "PM";
+        // Cultures with a 24-hour default ("H:mm") still show 12-hour times with AM/PM, like the editors.
+        if (!format.ShortTimePattern.Contains('t')) format.ShortTimePattern = "h:mm tt";
+        if (!format.LongTimePattern.Contains('t')) format.LongTimePattern = "h:mm:ss tt";
+        System.Globalization.CultureInfo.CurrentCulture = culture;
+        System.Globalization.CultureInfo.DefaultThreadCurrentCulture = culture;
     }
 
     /// <summary>Applies Settings > Appearance (System / Light / Dark). "System" follows Windows' app theme.</summary>
